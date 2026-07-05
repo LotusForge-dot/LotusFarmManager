@@ -205,13 +205,10 @@ function showSettings() {
         .addEventListener("click", showMaterialMaster);
 document.getElementById("btnBackup")
     .addEventListener("click", exportBackup);
-    document.getElementById("btnBackup")
-        .addEventListener("click", exportBackup);
+    
 
     document.getElementById("btnRestore")
-    .addEventListener("click", () => {
-        alert("復元機能は開発中です。");
-    });
+    .addEventListener("click", importBackup);
 
 }
 
