@@ -131,12 +131,9 @@ function exportBackup() {
 
     a.href = url;
     a.download = "LotusFarmManager_Backup.json";
-    alert("クリックする");
-
+    document.body.appendChild(a);
 a.click();
-
-alert("クリックした");
-    
+document.body.removeChild(a);
 
     URL.revokeObjectURL(url);
 }
