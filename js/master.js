@@ -7,7 +7,7 @@
 // ------------------------
 // 田んぼマスタ
 // ------------------------
-
+let fertilizerPlanList = [];
 let workFormVisible = false;
 let workMaster = [];
 let editingWorkIndex = -1;

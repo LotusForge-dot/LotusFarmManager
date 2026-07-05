@@ -6,6 +6,8 @@
 
 const app = document.getElementById("app");
 let recordList = [];
+let planMaterials = [];
+
 let editingRecordIndex = -1;
 // ------------------------
 // 作業記録
@@ -192,6 +194,7 @@ function showSettings() {
             <button id="btnFieldMaster">田んぼマスタ</button>
             <button id="btnWorkMaster">作業マスタ</button>
             <button id="btnMaterialMaster">資材マスタ</button>
+            <button onclick="showFertilizerPlan()">    🌱施肥設計</button>
         </div>
 
         <hr>
@@ -278,7 +281,9 @@ document.getElementById("btnSettings").addEventListener("click", showSettings);
 loadFieldMaster();
 loadWorkMaster();
 loadMaterialMaster();
+loadFertilizerPlanList();
 loadRecordList();
+
 // 初期画面
 showRecord();
 
@@ -1006,5 +1011,277 @@ function renderHistoryYearOptions() {
         `;
 
     });
+
+}
+function showFertilizerPlan() {
+
+    app.innerHTML = `
+
+        <h2>🌱施肥設計</h2>
+
+        <label>年</label>
+
+        <select id="planYear"></select>
+
+        <label>田んぼ</label>
+
+        <select id="planField"></select>
+
+        <hr>
+
+        <div id="planArea"></div>
+
+    `;
+
+    renderPlanYearOptions();
+renderPlanFieldOptions();
+renderPlanArea();
+
+document
+    .getElementById("planYear")
+    .addEventListener("change", loadFertilizerPlan);
+
+document
+    .getElementById("planField")
+    .addEventListener("change", loadFertilizerPlan);
+
+loadFertilizerPlan();
+}
+function loadFertilizerPlan() {
+
+    const year =
+        document.getElementById("planYear").value;
+
+    const field =
+        document.getElementById("planField").value;
+
+    const plan =
+        fertilizerPlanList.find(p =>
+
+            p.year === year &&
+            p.field === field
+
+        );
+
+    if (plan) {
+
+        planMaterials =
+            structuredClone(plan.materials);
+
+    } else {
+
+        planMaterials = [];
+
+    }
+
+    renderPlanMaterials();
+
+}
+
+function renderPlanYearOptions() {
+
+    const select =
+        document.getElementById("planYear");
+
+    const year = new Date().getFullYear();
+
+    select.innerHTML = "";
+
+    for (let y = year - 2; y <= year + 2; y++) {
+
+        select.innerHTML += `
+            <option value="${y}">
+                ${y}
+            </option>
+        `;
+
+    }
+
+    select.value = year;
+
+}
+
+
+function renderPlanFieldOptions() {
+
+    const select =
+        document.getElementById("planField");
+
+    select.innerHTML = "";
+
+    fieldMaster.forEach(field => {
+
+        select.innerHTML += `
+            <option value="${field.no}">
+                No.${field.no}
+            </option>
+        `;
+
+    });
+
+}
+
+function renderPlanArea() {
+
+    const area =
+        document.getElementById("planArea");
+
+    area.innerHTML = `
+
+        <h3>資材</h3>
+
+        <div id="planMaterials"></div>
+
+        <br>
+
+        <button onclick="addPlanMaterial()">
+            ＋資材追加
+        </button>
+
+        <br><br>
+
+        <button onclick="saveFertilizerPlan()">
+            💾保存
+        </button>
+
+    `;
+renderPlanMaterials();
+}
+
+function addPlanMaterial() {
+	planMaterials.push({
+        material: "",
+        amount: ""
+    });
+
+    renderPlanMaterials();
+	
+
+}
+function saveFertilizerPlan() {
+
+    const year =
+        document.getElementById("planYear").value;
+
+    const field =
+        document.getElementById("planField").value;
+
+    const plan = {
+
+        year,
+        field,
+
+        // 配列をコピーして保存
+        materials: structuredClone(planMaterials)
+
+    };
+
+    const index =
+        fertilizerPlanList.findIndex(p =>
+
+            p.year === year &&
+            p.field === field
+
+        );
+
+    if (index >= 0) {
+
+        fertilizerPlanList[index] = plan;
+
+    } else {
+
+        fertilizerPlanList.push(plan);
+
+    }
+
+    saveFertilizerPlanList();
+
+    alert("保存しました。");
+
+}
+
+
+
+function renderPlanMaterials() {
+
+    const div =
+        document.getElementById("planMaterials");
+
+    let html = "";
+
+    planMaterials.forEach((material, index) => {
+
+        html += `
+            <div>
+
+                資材<select
+    onchange="changePlanMaterial(${index}, this.value)">
+
+    <option value="">選択してください</option>
+
+    ${materialMaster.map(master => `
+        <option
+            value="${master.name}"
+            ${material.material === master.name ? "selected" : ""}
+        >
+            ${master.name}
+        </option>
+    `).join("")}
+
+</select>
+
+                数量
+          　
+                <input
+    type="number"
+    value="${material.amount}"
+    onchange="changePlanAmount(${index}, this.value)">
+${(() => {
+
+    const master =
+        materialMaster.find(
+            m => m.name === material.material
+        );
+
+    return master ? master.unit : "";
+
+})()}
+                
+<button
+    onclick="deletePlanMaterial(${index})">
+    🗑️
+</button>
+            </div>
+
+            <br>
+        `;
+
+    });
+
+    div.innerHTML = html;
+
+}
+function changePlanMaterial(index, value) {
+
+   
+
+    planMaterials[index].material = value;
+
+    renderPlanMaterials();
+
+}
+function changePlanAmount(index, value) {
+
+    planMaterials[index].amount = Number(value);
+
+    renderPlanMaterials();
+
+}
+
+function deletePlanMaterial(index) {
+
+    planMaterials.splice(index, 1);
+
+    renderPlanMaterials();
 
 }

@@ -110,11 +110,14 @@ function loadRecordList() {
 function exportBackup() {
 
     const backupData = {
-        fieldMaster,
-        workMaster,
-        materialMaster,
-        recordList
-    };
+
+    fieldMaster,
+    workMaster,
+    materialMaster,
+    fertilizerPlanList,
+    recordList
+
+};
 
     const json = JSON.stringify(backupData, null, 2);
 
@@ -157,12 +160,13 @@ function importBackup() {
             workMaster = backupData.workMaster || [];
             materialMaster = backupData.materialMaster || [];
             recordList = backupData.recordList || [];
+            fertilizerPlanList = backupData.fertilizerPlanList || [];
 
             saveFieldMaster();
             saveWorkMaster();
             saveMaterialMaster();
             saveRecordList();
-
+            saveFertilizerPlanList();
             alert("復元しました。");
 
             showRecord();
@@ -181,12 +185,13 @@ function exportBackupHistory() {
 
     const backupData = {
 
-        fieldMaster,
-        workMaster,
-        materialMaster,
-        recordList
+    fieldMaster,
+    workMaster,
+    materialMaster,
+    fertilizerPlanList,
+    recordList
 
-    };
+};
 
     const json =
         JSON.stringify(backupData, null, 2);
@@ -224,5 +229,39 @@ function exportBackupHistory() {
     a.click();
 
     URL.revokeObjectURL(url);
+
+}
+
+// ==========================================
+// 施肥設計
+// ==========================================
+
+// ------------------------
+// 保存
+// ------------------------
+
+function saveFertilizerPlanList() {
+
+    localStorage.setItem(
+        "fertilizerPlanList",
+        JSON.stringify(fertilizerPlanList)
+    );
+
+}
+
+// ------------------------
+// 読込
+// ------------------------
+
+function loadFertilizerPlanList() {
+
+    const data =
+        localStorage.getItem("fertilizerPlanList");
+
+    if (data) {
+        fertilizerPlanList = JSON.parse(data);
+    } else {
+        fertilizerPlanList = [];
+    }
 
 }
