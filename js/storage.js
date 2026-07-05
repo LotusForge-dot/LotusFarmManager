@@ -101,6 +101,42 @@ function loadRecordList() {
 
 }
 
+
+
+// ==========================================
+// バックアップ
+// ==========================================
+
 function exportBackup() {
 
+    const backupData = {
+        fieldMaster,
+        workMaster,
+        materialMaster,
+        recordList
+    };
+
+    const json = JSON.stringify(backupData, null, 2);
+
+    const blob = new Blob(
+        [json],
+        { type: "application/json" }
+    );
+
+    const url = URL.createObjectURL(blob);
+
+    alert(url);   // ← ここ！
+
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = "LotusFarmManager_Backup.json";
+    alert("クリックする");
+
+a.click();
+
+alert("クリックした");
+    
+
+    URL.revokeObjectURL(url);
 }

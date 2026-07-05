@@ -209,7 +209,9 @@ document.getElementById("btnBackup")
         .addEventListener("click", exportBackup);
 
     document.getElementById("btnRestore")
-        .addEventListener("click", importBackup);
+    .addEventListener("click", () => {
+        alert("復元機能は開発中です。");
+    });
 
 }
 
