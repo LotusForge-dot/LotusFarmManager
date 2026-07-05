@@ -126,7 +126,7 @@ function exportBackup() {
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = "LotusFarmManager_Backup.json";
+    a.download = "LotusFarmManager_Save.json";
     a.click();
 
     URL.revokeObjectURL(url);
@@ -174,5 +174,55 @@ function importBackup() {
     });
 
     input.click();
+
+}
+
+function exportBackupHistory() {
+
+    const backupData = {
+
+        fieldMaster,
+        workMaster,
+        materialMaster,
+        recordList
+
+    };
+
+    const json =
+        JSON.stringify(backupData, null, 2);
+
+    const blob =
+        new Blob([json], { type: "application/json" });
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const a =
+        document.createElement("a");
+
+    const now = new Date();
+
+    const yyyy = now.getFullYear();
+
+    const mm =
+        String(now.getMonth() + 1).padStart(2, "0");
+
+    const dd =
+        String(now.getDate()).padStart(2, "0");
+
+    const hh =
+        String(now.getHours()).padStart(2, "0");
+
+    const mi =
+        String(now.getMinutes()).padStart(2, "0");
+
+    a.href = url;
+
+    a.download =
+        `LotusFarmManager_${yyyy}${mm}${dd}_${hh}${mi}.json`;
+
+    a.click();
+
+    URL.revokeObjectURL(url);
 
 }

@@ -190,8 +190,17 @@ function showSettings() {
         <h3>データ管理</h3>
 
         <div class="menu" style="flex-direction: column; margin-top:20px;">
-            <button id="btnBackup">💾 バックアップ</button>
-            <button id="btnRestore">📥 復元</button>
+            <button id="btnSave">
+💾 セーブ
+</button>
+
+<button id="btnBackupHistory">
+📦 バックアップ
+</button>
+
+<button id="btnRestore">
+📥 復元
+</button>
         </div>
     `;
 
@@ -203,12 +212,22 @@ function showSettings() {
 
     document.getElementById("btnMaterialMaster")
         .addEventListener("click", showMaterialMaster);
-document.getElementById("btnBackup")
-    .addEventListener("click", exportBackup);
-    
+
 
     document.getElementById("btnRestore")
     .addEventListener("click", importBackup);
+
+
+document
+    .getElementById("btnSave")
+    .addEventListener("click", exportBackup);
+
+document
+    .getElementById("btnBackupHistory")
+    .addEventListener("click", exportBackupHistory);
+
+
+
 
 }
 
