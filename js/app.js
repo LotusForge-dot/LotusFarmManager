@@ -104,6 +104,11 @@ function showHistory() {
 <h3>🔍 検索条件</h3>
 
 <br>
+<label>年</label>
+
+<select id="historyYear">
+    <option value="">全て</option>
+</select>
         <label>田んぼ</label>
         
 
@@ -150,6 +155,7 @@ function showHistory() {
     `;
 renderHistoryFieldOptions();
 renderHistoryWorkOptions();
+renderHistoryYearOptions();
 
 renderHistoryList();
  document
@@ -168,6 +174,9 @@ document
     document
     .getElementById("btnClearHistorySearch")
     .addEventListener("click", clearHistorySearch);
+    document
+    .getElementById("historyYear")
+    .addEventListener("change", renderHistoryList);
 }
 // ------------------------
 // 設定
@@ -536,6 +545,8 @@ function renderRecordList() {
 
 
 function renderHistoryList() {
+const selectedYear =
+    document.getElementById("historyYear").value;
 	const from =
     document.getElementById("historyFrom").value;
 
@@ -570,6 +581,16 @@ const selectedField =
     const filteredRecords = recordList
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date))
+    
+    .filter(record => {
+
+    if (selectedYear === "") {
+        return true;
+    }
+
+    return record.date.startsWith(selectedYear);
+
+})
     .filter(record => {
 
         if (selectedField === "") {
@@ -844,6 +865,7 @@ function renderHistoryWorkOptions() {
 }
 function clearHistorySearch() {
 
+document.getElementById("historyYear").value = "";
     document.getElementById("historyField").value = "";
 
     document.getElementById("historyWork").value = "";
@@ -961,5 +983,28 @@ function updateMaterialUnit(event) {
 
     unitSpan.textContent =
         material ? material.unit : "";
+
+}
+
+function renderHistoryYearOptions() {
+
+    const select =
+        document.getElementById("historyYear");
+
+    const years = [
+        ...new Set(
+            recordList.map(record => record.date.substring(0, 4))
+        )
+    ].sort().reverse();
+
+    years.forEach(year => {
+
+        select.innerHTML += `
+            <option value="${year}">
+                ${year}年
+            </option>
+        `;
+
+    });
 
 }
