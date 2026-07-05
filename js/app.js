@@ -399,6 +399,52 @@ function saveRecord() {
         memo: document.getElementById("recordMemo").value
 
     };
+    
+    
+// ------------------------
+// 入力チェック
+// ------------------------
+
+if (record.date === "") {
+
+    alert("日付を入力してください。");
+
+    return;
+
+}
+
+if (record.field === "") {
+
+    alert("田んぼを選択してください。");
+
+    return;
+
+}
+
+if (record.work === "") {
+
+    alert("作業を選択してください。");
+
+    return;
+
+}
+for (const m of materials) {
+
+    if (m.material !== "" && m.amount === "") {
+
+        alert("資材の数量を入力してください。");
+
+        return;
+
+    }
+if (m.material === "" && m.amount !== "") {
+
+    alert("資材を選択してください。");
+
+    return;
+
+}
+}
 
     if (editingRecordIndex === -1) {
 
