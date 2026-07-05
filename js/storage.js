@@ -126,7 +126,7 @@ function exportBackup() {
     const url = URL.createObjectURL(blob);
 
     alert(url);   // ← ここ！
-
+alert(url);   
     const a = document.createElement("a");
 
     a.href = url;
