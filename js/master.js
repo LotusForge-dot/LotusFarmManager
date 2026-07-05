@@ -183,29 +183,73 @@ function renderMaterialMaster() {
             <br>
 
             <label>資材名</label><br>
-            <input type="text" id="materialName"><br><br>
+<input type="text" id="materialName"><br><br>
 
-            <label>単位</label><br>
-            <select id="materialUnit">
-                <option value="袋">袋</option>
-                <option value="kg">kg</option>
-                <option value="L">L</option>
-                <option value="本">本</option>
-                <option value="個">個</option>
-                <option value="倍">倍</option>
-            </select>
+<label>単位</label><br>
+<select id="materialUnit">
+    <option value="袋">袋</option>
+    <option value="kg">kg</option>
+    <option value="L">L</option>
+    <option value="本">本</option>
+    <option value="個">個</option>
+    <option value="倍">倍</option>
+</select>
 
-            <br><br>
+<br><br>
 
-            <label>使用可能作業</label><br>
+<label>内容量</label><br>
+<input
+    type="number"
+    id="materialWeight"
+    step="0.1">
+kg
 
-            <div id="workCheckList"></div>
+<br><br>
 
-            <br>
+<label>窒素(N)</label><br>
+<input
+    type="number"
+    id="materialN"
+    step="0.1">
+%
 
-            <button id="btnSaveMaterial">
-                ${editingMaterialIndex === -1 ? "保存" : "更新"}
-            </button>
+<br><br>
+
+<label>リン酸(P)</label><br>
+<input
+    type="number"
+    id="materialP"
+    step="0.1">
+%
+
+<br><br>
+
+<label>加里(K)</label><br>
+<input
+    type="number"
+    id="materialK"
+    step="0.1">
+%
+
+<br><br>
+
+<label>単価</label><br>
+<input
+    type="number"
+    id="materialPrice">
+円
+
+<br><br>
+
+<label>使用可能作業</label><br>
+
+<div id="workCheckList"></div>
+
+<br>
+
+<button id="btnSaveMaterial">
+    ${editingMaterialIndex === -1 ? "保存" : "更新"}
+</button>
         `;
 
         document
@@ -221,7 +265,20 @@ function renderMaterialMaster() {
 
             document.getElementById("materialName").value = material.name;
             document.getElementById("materialUnit").value = material.unit || "";
+document.getElementById("materialWeight").value =
+    material.weight || 0;
 
+document.getElementById("materialN").value =
+    material.n || 0;
+
+document.getElementById("materialP").value =
+    material.p || 0;
+
+document.getElementById("materialK").value =
+    material.k || 0;
+
+document.getElementById("materialPrice").value =
+    material.price || 0;
             document
                 .querySelectorAll("#workCheckList input[type='checkbox']")
                 .forEach(check => {
@@ -508,25 +565,48 @@ function renderMaterialList() {
     <tr>
     <th>資材名</th>
     <th>単位</th>
+    <th>内容量</th>
+    <th>N</th>
+    <th>P</th>
+    <th>K</th>
+    <th>単価</th>
     <th>使用可能作業</th>
     <th>操作</th>
 </tr>
     `;
 
     materialMaster.forEach((material, index) => {
-       const worksText = (material.works || []).join("、");
-        html += `
-            <tr>
+       
+const worksText = (material.works || []).join("、");
+
+html += `
+<tr>
     <td>${material.name}</td>
-<td>${material.unit || ""}</td>
+
+    <td>${material.unit || ""}</td>
+
+    <td>
+        ${material.weight ? material.weight + "kg" : ""}
+    </td>
+
+    <td>${material.n || ""}</td>
+
+    <td>${material.p || ""}</td>
+
+    <td>${material.k || ""}</td>
+
+    <td>
+        ${material.price ? material.price + "円" : ""}
+    </td>
+
     <td>${worksText}</td>
+
     <td>
         <button onclick="editMaterial(${index})">✏️</button>
         <button onclick="deleteMaterial(${index})">🗑️</button>
     </td>
 </tr>
-        `;
-
+`;
     });
 
     html += "</table>";
@@ -554,7 +634,29 @@ function saveMaterial() {
     const material = {
 
     name: document.getElementById("materialName").value,
+
     unit: document.getElementById("materialUnit").value,
+
+    weight: Number(
+        document.getElementById("materialWeight").value
+    ),
+
+    n: Number(
+        document.getElementById("materialN").value
+    ),
+
+    p: Number(
+        document.getElementById("materialP").value
+    ),
+
+    k: Number(
+        document.getElementById("materialK").value
+    ),
+
+    price: Number(
+        document.getElementById("materialPrice").value
+    ),
+
     works: works
 
 };
