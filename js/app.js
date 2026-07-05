@@ -173,19 +173,44 @@ document
 // 設定
 // ------------------------
 function showSettings() {
+
     app.innerHTML = `
         <h2>⚙️ 設定</h2>
+
+        <h3>マスタ管理</h3>
 
         <div class="menu" style="flex-direction: column; margin-top:20px;">
             <button id="btnFieldMaster">田んぼマスタ</button>
             <button id="btnWorkMaster">作業マスタ</button>
             <button id="btnMaterialMaster">資材マスタ</button>
         </div>
+
+        <hr>
+
+        <h3>データ管理</h3>
+
+        <div class="menu" style="flex-direction: column; margin-top:20px;">
+            <button id="btnBackup">💾 バックアップ</button>
+            <button id="btnRestore">📥 復元</button>
+        </div>
     `;
 
-    document.getElementById("btnFieldMaster").addEventListener("click", showFieldMaster);
-    document.getElementById("btnWorkMaster").addEventListener("click", showWorkMaster);
-    document.getElementById("btnMaterialMaster").addEventListener("click", showMaterialMaster);
+    document.getElementById("btnFieldMaster")
+        .addEventListener("click", showFieldMaster);
+
+    document.getElementById("btnWorkMaster")
+        .addEventListener("click", showWorkMaster);
+
+    document.getElementById("btnMaterialMaster")
+        .addEventListener("click", showMaterialMaster);
+document.getElementById("btnBackup")
+    .addEventListener("click", exportBackup);
+    document.getElementById("btnBackup")
+        .addEventListener("click", exportBackup);
+
+    document.getElementById("btnRestore")
+        .addEventListener("click", importBackup);
+
 }
 
 // ------------------------
