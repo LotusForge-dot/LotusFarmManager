@@ -567,10 +567,9 @@ const selectedField =
 </tr>
     `;
 
-    recordList
+    const filteredRecords = recordList
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date))
-    
     .filter(record => {
 
         if (selectedField === "") {
@@ -580,31 +579,66 @@ const selectedField =
         return record.field == selectedField;
 
     })
-    
     .filter(record => {
 
-    if (selectedWork === "") {
+        if (selectedWork === "") {
+            return true;
+        }
+
+        return record.work == selectedWork;
+
+    })
+    .filter(record => {
+
+        if (from !== "" && record.date < from) {
+            return false;
+        }
+
+        if (to !== "" && record.date > to) {
+            return false;
+        }
+
         return true;
-    }
 
-    return record.work == selectedWork;
+    });
+    const materialSummary = {};
+    let totalN = 0;
+    let totalP = 0;
+    let totalK = 0;
+    let totalCost = 0;
+ filteredRecords.forEach(record => {
+    record.materials.forEach(material => {
 
-})
-.filter(record => {
+const master =
+    materialMaster.find(m => m.name === material.material);
 
-    if (from !== "" && record.date < from) {
-        return false;
-    }
+if (master) {
 
-    if (to !== "" && record.date > to) {
-        return false;
-    }
+    totalN +=
+        material.amount * master.weight * master.n / 100;
 
-    return true;
+    totalP +=
+        material.amount * master.weight * master.p / 100;
 
-})
- .forEach(record => {
+    totalK +=
+        material.amount * master.weight * master.k / 100;
 
+totalCost +=
+        material.amount * master.price;
+
+}
+        if (material.material === "") {
+            return;
+        }
+
+        if (!materialSummary[material.material]) {
+            materialSummary[material.material] = 0;
+        }
+
+        materialSummary[material.material] +=
+            Number(material.amount);
+
+    });
     const originalIndex = recordList.indexOf(record);
     const field = fieldMaster.find(f => f.no == record.field);
 
@@ -640,10 +674,51 @@ const selectedField =
     `;
 
 });
+let materialHtml = "";
 
+for (const name in materialSummary) {
+
+    const master =
+        materialMaster.find(m => m.name === name);
+
+    const unit = master ? master.unit : "";
+
+    materialHtml += `
+        ${name}：${materialSummary[name]}${unit}<br>
+    `;
+
+}
+
+if (materialHtml === "") {
+
+    materialHtml = "使用資材なし";
+
+}
     html += "</table>";
 
-    list.innerHTML = html;
+html += `
+<hr>
+
+<h3>📊 集計</h3>
+
+<p>対象件数：${filteredRecords.length}件</p>
+
+<h4>使用資材</h4>
+
+${materialHtml}
+
+<h4>肥料成分</h4>
+
+N：${Number(totalN.toFixed(2))} kg<br>
+P：${Number(totalP.toFixed(2))} kg<br>
+K：${Number(totalK.toFixed(2))} kg
+
+<h4>資材費</h4>
+
+${Number(totalCost.toFixed(0)).toLocaleString()} 円
+`;
+list.innerHTML = html;
+    
 
 }
 
