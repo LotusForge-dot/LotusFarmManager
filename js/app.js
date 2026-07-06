@@ -1067,7 +1067,16 @@ function loadFertilizerPlan() {
 
         planMaterials =
             structuredClone(plan.materials);
+            
+planMaterials.forEach(material => {
 
+    if (!("work" in material)) {
+
+        material.work = "";
+
+    }
+
+});
     } else {
 
         planMaterials = [];
@@ -1134,28 +1143,79 @@ function renderPlanArea() {
 
         <br>
 
-        <button onclick="addPlanMaterial()">
-            ＋資材追加
-        </button>
+        
+
+<button onclick="addPlanWork()">
+    ＋作業追加
+</button>
 
         <br><br>
 
-        <button onclick="saveFertilizerPlan()">
-            💾保存
-        </button>
+<div class="summary-card">
+  <h3>施肥合計</h3>
+  
 
+  <div class="summary-card">
+  <h3>🧪 施肥量</h3>
+
+  <div>総施肥量：<span id="totalAmount">0.0</span> kg</div>
+  <div>N：<span id="totalN">0.0</span> kg</div>
+  <div>P：<span id="totalP">0.0</span> kg</div>
+  <div>K：<span id="totalK">0.0</span> kg</div>
+</div>
+
+<br>
+<div class="summary-card">
+  <h3>📏 10a当たり</h3>
+
+  <div>施肥量：<span id="per10aAmount">0.0</span> kg</div>
+  <div>N：<span id="per10aN">0.0</span> kg</div>
+  <div>P：<span id="per10aP">0.0</span> kg</div>
+  <div>K：<span id="per10aK">0.0</span> kg</div>
+</div>
+
+<br>
+<div class="summary-card">
+  <h3>💰 コスト</h3>
+
+  <div>総費用：<span id="totalPrice">0</span> 円</div>
+  <div>10a当たり：<span id="per10aPrice">0</span> 円</div>
+</div>
+
+<br>
+
+<button onclick="saveFertilizerPlan()">
+    💾保存
+</button>
     `;
 renderPlanMaterials();
 }
 
-function addPlanMaterial() {
-	planMaterials.push({
+function addPlanMaterial(work = null) {
+
+    if (work === null && planMaterials.length > 0) {
+
+        work = planMaterials[
+            planMaterials.length - 1
+        ].work;
+
+    }
+
+    if (work === null) {
+
+        work = "";
+
+    }
+
+    planMaterials.push({
+
+        work: work,
         material: "",
         amount: ""
+
     });
 
     renderPlanMaterials();
-	
 
 }
 function saveFertilizerPlan() {
@@ -1208,34 +1268,85 @@ function renderPlanMaterials() {
         document.getElementById("planMaterials");
 
     let html = "";
+const works = [
+    ...new Set(
+        planMaterials.map(m => m.work)
+    )
+];
+works.forEach(work => {
 
-    planMaterials.forEach((material, index) => {
+    html += `
 
-        html += `
-            <div>
+<div class="work-card">
 
-                資材<select
-    onchange="changePlanMaterial(${index}, this.value)">
+<div class="work-header">
+
+🌱 
+
+<select onchange="changeWorkGroup('${work}', this.value)">
 
     <option value="">選択してください</option>
 
-    ${materialMaster.map(master => `
+    ${workMaster.map(w => `
         <option
-            value="${master.name}"
-            ${material.material === master.name ? "selected" : ""}
+            value="${w.name}"
+            ${work === w.name ? "selected" : ""}
         >
-            ${master.name}
+            ${w.name}
         </option>
     `).join("")}
 
 </select>
 
-                数量
-          　
-                <input
+</div>
+`;
+    planMaterials.forEach((material, index) => {
+
+        if (material.work !== work) {
+            return;
+        }
+    
+
+        html += `
+            <div>
+
+
+
+資材
+<select
+    onchange="changePlanMaterial(${index}, this.value)">
+
+    <option value="">選択してください</option>
+
+    ${materialMaster
+        .filter(master => {
+
+            if (material.work === "") {
+                return true;
+            }
+
+            return master.works.includes(material.work);
+
+        })
+        .map(master => `
+            <option
+                value="${master.name}"
+                ${material.material === master.name ? "selected" : ""}
+            >
+                ${master.name}
+            </option>
+        `)
+        .join("")}
+
+</select>
+
+数量
+
+<input
     type="number"
     value="${material.amount}"
     onchange="changePlanAmount(${index}, this.value)">
+
 ${(() => {
 
     const master =
@@ -1246,19 +1357,43 @@ ${(() => {
     return master ? master.unit : "";
 
 })()}
-                
+
 <button
     onclick="deletePlanMaterial(${index})">
     🗑️
 </button>
-            </div>
 
-            <br>
-        `;
+</div>
 
-    });
+<br>
+                `;
 
-    div.innerHTML = html;
+        });
+
+    html += `
+<button onclick="addPlanMaterial('${work}')">
+    ＋資材追加
+</button>
+
+<br><br>
+</div>
+`;
+
+});
+div.innerHTML = html;
+
+    updateFertilizerSummary();
+
+}
+
+function changePlanWork(index, value) {
+
+    planMaterials[index].work = value;
+
+    // 作業が変わったら資材をリセット
+    planMaterials[index].material = "";
+
+    renderPlanMaterials();
 
 }
 function changePlanMaterial(index, value) {
@@ -1281,6 +1416,108 @@ function changePlanAmount(index, value) {
 function deletePlanMaterial(index) {
 
     planMaterials.splice(index, 1);
+
+    renderPlanMaterials();
+
+}
+
+function updateFertilizerSummary() {
+    let totalAmount = 0;
+    let totalN = 0;
+    let totalP = 0;
+    let totalK = 0;
+let totalPrice = 0;
+    planMaterials.forEach(material => {
+
+    const master = materialMaster.find(
+        m => m.name === material.material
+    );
+
+    if (!master) return;
+
+    const amount = Number(material.amount) || 0;
+    const weight = Number(master.weight) || 0;
+const price = Number(master.price) || 0;
+
+totalPrice += amount * price;
+    const totalKg = amount * weight;
+
+    totalAmount += totalKg;
+
+    totalN += totalKg * (Number(master.n) || 0) / 100;
+    totalP += totalKg * (Number(master.p) || 0) / 100;
+    totalK += totalKg * (Number(master.k) || 0) / 100;
+
+});
+
+    document.getElementById("totalAmount").textContent = totalAmount.toFixed(1);
+    document.getElementById("totalN").textContent = totalN.toFixed(1);
+    document.getElementById("totalP").textContent = totalP.toFixed(1);
+    document.getElementById("totalK").textContent = totalK.toFixed(1);
+    document.getElementById("totalPrice").textContent =   totalPrice.toLocaleString();
+    const fieldNo = document.getElementById("planField").value;
+
+console.log("fieldNo =", fieldNo);
+console.log("fieldMaster =", fieldMaster);
+
+const field =
+    fieldMaster.find(f => String(f.no) === String(fieldNo));
+const area = Number(field.area);
+let per10aAmount = 0;
+let per10aN = 0;
+let per10aP = 0;
+let per10aK = 0;
+let per10aPrice = 0;
+if (area > 0) {
+    per10aAmount = totalAmount / area;
+    per10aN = totalN / area;
+    per10aP = totalP / area;
+    per10aK = totalK / area;
+    per10aPrice = totalPrice / area;
+}
+document.getElementById("per10aAmount").textContent =
+    per10aAmount.toFixed(1);
+
+document.getElementById("per10aN").textContent =
+    per10aN.toFixed(1);
+
+document.getElementById("per10aP").textContent =
+    per10aP.toFixed(1);
+
+document.getElementById("per10aK").textContent =
+    per10aK.toFixed(1);
+console.log(per10aAmount);
+console.log(area);
+console.log("field =", field);
+document.getElementById("per10aPrice").textContent =
+    per10aPrice.toLocaleString();
+
+}
+
+function addPlanWork() {
+
+    planMaterials.push({
+
+        work: "",
+        material: "",
+        amount: ""
+
+    });
+
+    renderPlanMaterials();
+
+}
+function changeWorkGroup(oldWork, newWork) {
+
+    planMaterials.forEach(material => {
+
+        if (material.work === oldWork) {
+
+            material.work = newWork;
+
+        }
+
+    });
 
     renderPlanMaterials();
 
