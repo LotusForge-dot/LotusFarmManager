@@ -382,3 +382,102 @@ function loadStandardTemplate() {
     loadTemplate(template);
 
 }
+
+// ============================================================
+// 共通テンプレート保存
+// ============================================================
+function saveCommonTemplate() {
+
+    const name = prompt("テンプレート名を入力してください");
+
+if (name === null) {
+    return;
+}
+
+if (name.trim() === "") {
+
+    alert("テンプレート名を入力してください。");
+
+    return;
+
+}
+
+    // キャンセル・未入力
+    if (!name) {
+        return;
+    }
+templateMaster.push({
+
+    id: crypto.randomUUID(),
+
+    name: name,
+
+    type: "common",
+
+    fieldNo: "",
+
+    materials: structuredClone(planMaterials)
+
+});
+saveTemplateMaster();
+renderCommonTemplateSelect();
+
+}
+
+// ============================================================
+// 共通テンプレート読込
+// ============================================================
+function loadTemplateSelect() {
+
+    const id =
+    document.getElementById("commonTemplateSelect").value;
+
+    const template =
+        templateMaster.find(item =>
+            item.id === id
+        );
+
+    if (!template) {
+
+        alert("テンプレートが見つかりません。");
+
+        return;
+
+    }
+
+    loadTemplate(template);
+
+}
+
+// ============================================================
+// 共通テンプレート削除
+// ============================================================
+function deleteCommonTemplate() {
+
+    const id =
+        document.getElementById("commonTemplateSelect").value;
+
+    if (!id) {
+
+        alert("テンプレートを選択してください。");
+
+        return;
+
+    }
+
+    if (!confirm("削除しますか？")) {
+
+        return;
+
+    }
+
+    templateMaster =
+        templateMaster.filter(item =>
+            item.id !== id
+        );
+
+    saveTemplateMaster();
+
+    renderCommonTemplateSelect();
+
+}

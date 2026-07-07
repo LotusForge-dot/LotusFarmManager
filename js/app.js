@@ -304,8 +304,7 @@ loadWorkMaster();
 loadMaterialMaster();
 loadFertilizerPlanList();
 loadRecordList();
-loadFieldMaster();
-// 初期画面
+loadTemplateMaster()
 showRecord();
 
 // ------------------------
@@ -1074,6 +1073,26 @@ function showFertilizerPlan() {
 
         <select id="planField"></select>
 
+<br><br>
+<label>テンプレート</label>
+<br>
+<select id="commonTemplateSelect"></select>
+<button onclick=" loadTemplateSelect()">
+📂読込
+</button>
+<button onclick="deleteCommonTemplate()">
+🗑
+</button>
+<br>
+<button onclick="saveTemplate({ type: 'standard' })">
+🌱標準化
+</button>
+
+<button onclick="saveCommonTemplate()">
+💾共通保存
+</button>
+
+
         <hr>
 
         <div id="planArea"></div>
@@ -1083,6 +1102,7 @@ function showFertilizerPlan() {
     renderPlanYearOptions();
     renderPlanFieldOptions();
     renderPlanArea();
+    renderTemplateSelect();
 
     // 年、田んぼが変更されたら該当の施肥設計をロード
     document
@@ -1134,6 +1154,7 @@ function loadFertilizerPlan() {
     }
 
     renderPlanMaterials();
+    renderTemplateSelect();
 
 }
 
@@ -1194,7 +1215,7 @@ function renderPlanArea() {
 
         <div id="planMaterials"></div>
 
-        <br>
+      
 
         
 
@@ -1202,7 +1223,17 @@ function renderPlanArea() {
     ＋作業追加
 </button>
 
-        <br><br>
+
+
+<hr>
+
+<button
+    class="mainButton"
+    onclick="saveFertilizerPlan()">
+💾 施肥設計を保存
+</button>
+        <br><br
+       
 
 <div class="summary-card">
   <h3>施肥合計</h3>
@@ -1237,24 +1268,9 @@ function renderPlanArea() {
 
 <br>
 
-<button onclick="saveFertilizerPlan()">
-    💾保存
-</button>
-<button type="button"
-        onclick="saveTemplate({ type: 'standard' })">
-
-    標準テンプレートとして保存
-
-</button>
-<button
-    type="button"
-    onclick="loadStandardTemplate()">
-
-    標準テンプレート読込
-
-</button>
     `;
     renderPlanMaterials();
+    renderTemplateSelect();
 }
 
 // 施肥設計内での資材行の追加処理（作業グループへの紐付け含む）
@@ -1600,5 +1616,45 @@ function changeWorkGroup(oldWork, newWork) {
     });
 
     renderPlanMaterials();
+
+}
+// ============================================================
+// 共通テンプレート一覧表示
+// ============================================================
+function renderTemplateSelect() {
+
+    const select =
+        document.getElementById("commonTemplateSelect");
+
+    let html = `
+<option value="">
+選択してください
+</option>
+`;
+
+    templateMaster
+        .filter(template =>
+            template.type === "common" ||
+            template.type === "standard"
+        )
+        .forEach(template => {
+
+            let name = template.name;
+
+            if (template.type === "standard") {
+
+                name = "🌱 " + template.name;
+
+            }
+
+            html += `
+<option value="${template.id}">
+${name}
+</option>
+`;
+
+        });
+
+    select.innerHTML = html;
 
 }
