@@ -4,7 +4,30 @@ Lotus Farm Manager 開発ログ
 ==========================================
 Lotus Farm Manager
 開発ログ
+## Version 4.4
+2026-07-07
 
+### 新機能
+・標準テンプレート機能を追加
+・標準テンプレート保存機能を追加
+・標準テンプレート読込機能を追加
+・田んぼごとに標準テンプレートを管理できるよう対応
+
+### 改善
+・テンプレート保存・読込処理を共通化
+・標準テンプレートを上書き保存できるよう対応
+・AIが理解しやすいよう、関数見出しコメント付きコードを正本へ採用
+・backupフォルダを追加し、正本バックアップ運用を開始
+### システム
+・templateMaster を追加
+・saveTemplate() を追加
+・loadTemplate() を追加
+・loadStandardTemplate() を追加
+・templateMaster の LocalStorage 保存・読込を追加
+・JSONバックアップ／復元対象へ templateMaster を追加
+
+### バグ修正
+・テンプレート保存時の参照コピー問題を修正（structuredClone対応）
 ## Version 4.3
 2026-07-06
 

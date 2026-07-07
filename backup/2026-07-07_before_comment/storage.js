@@ -13,7 +13,7 @@
 // ------------------------
 // 保存
 // ------------------------
-// 田んぼマスタをローカルストレージに永続化
+
 function saveFieldMaster() {
 
     localStorage.setItem(
@@ -26,7 +26,7 @@ function saveFieldMaster() {
 // ------------------------
 // 読込
 // ------------------------
-// 田んぼマスタをローカルストレージからロード
+
 function loadFieldMaster() {
 
     const data = localStorage.getItem("fieldMaster");
@@ -48,7 +48,7 @@ function loadFieldMaster() {
 // ------------------------
 // 保存
 // ------------------------
-// 作業マスタをローカルストレージに永続化
+
 function saveWorkMaster() {
 
     localStorage.setItem(
@@ -61,7 +61,7 @@ function saveWorkMaster() {
 // ------------------------
 // 読込
 // ------------------------
-// 作業マスタをローカルストレージからロード
+
 function loadWorkMaster() {
 
     const data = localStorage.getItem("workMaster");
@@ -75,7 +75,7 @@ function loadWorkMaster() {
 }// ------------------------
 // 作業記録保存
 // ------------------------
-// 入力・蓄積された全作業記録（実績リスト）をローカルストレージへ保存
+
 function saveRecordList() {
 
     localStorage.setItem(
@@ -88,7 +88,7 @@ function saveRecordList() {
 // ------------------------
 // 作業記録読込
 // ------------------------
-// ローカルストレージから全作業記録データを復元ロード
+
 function loadRecordList() {
 
     const data = localStorage.getItem("recordList");
@@ -107,16 +107,16 @@ function loadRecordList() {
 // バックアップ
 // ==========================================
 
-// アプリ内全マスタ及び記録データを統合オブジェクトにしてJSONファイルとしてエクスポート
 function exportBackup() {
 
     const backupData = {
+
     fieldMaster,
     workMaster,
     materialMaster,
-    templateMaster,
     fertilizerPlanList,
     recordList
+
 };
 
     const json = JSON.stringify(backupData, null, 2);
@@ -127,7 +127,6 @@ function exportBackup() {
 
     const url = URL.createObjectURL(blob);
 
-    // 仮想のダウンロード用リンクを動的生成してクリック処理
     const a = document.createElement("a");
     a.href = url;
     a.download = "LotusFarmManager_Save.json";
@@ -137,7 +136,6 @@ function exportBackup() {
 
 }
 
-// ユーザーが選択したJSONのバックアップファイルを解析し、データをアプリ内にインポート復元
 function importBackup() {
 
     const input = document.createElement("input");
@@ -158,23 +156,20 @@ function importBackup() {
             const backupData =
                 JSON.parse(e.target.result);
 
-            // データ展開（各項目が存在しない場合は空配列セーフティ）
             fieldMaster = backupData.fieldMaster || [];
             workMaster = backupData.workMaster || [];
             materialMaster = backupData.materialMaster || [];
             recordList = backupData.recordList || [];
             fertilizerPlanList = backupData.fertilizerPlanList || [];
-　　　templateMaster = backupData.templateMaster || [];
-            // すべての内部データをストレージへ即時反映
+
             saveFieldMaster();
             saveWorkMaster();
             saveMaterialMaster();
             saveRecordList();
             saveFertilizerPlanList();
-            saveTemplateMaster();
             alert("復元しました。");
 
-            showRecord(); // 画面を再描画
+            showRecord();
 
         };
 
@@ -186,16 +181,16 @@ function importBackup() {
 
 }
 
-// タイムスタンプ（日時）付きのファイル名で、全データをまとめて保存・出力するエクスポート処理
 function exportBackupHistory() {
 
     const backupData = {
+
     fieldMaster,
     workMaster,
     materialMaster,
-    templateMaster,
     fertilizerPlanList,
     recordList
+
 };
 
     const json =
@@ -210,7 +205,6 @@ function exportBackupHistory() {
     const a =
         document.createElement("a");
 
-    // ファイル名に組み込む現在日時のフォーマット生成
     const now = new Date();
 
     const yyyy = now.getFullYear();
@@ -229,7 +223,6 @@ function exportBackupHistory() {
 
     a.href = url;
 
-    // YYYYMMDD_HHMI 形式の接尾辞を持たせてダウンロード
     a.download =
         `LotusFarmManager_${yyyy}${mm}${dd}_${hh}${mi}.json`;
 
@@ -246,7 +239,7 @@ function exportBackupHistory() {
 // ------------------------
 // 保存
 // ------------------------
-// 施肥設計リストをローカルストレージに保存
+
 function saveFertilizerPlanList() {
 
     localStorage.setItem(
@@ -259,7 +252,7 @@ function saveFertilizerPlanList() {
 // ------------------------
 // 読込
 // ------------------------
-// 施肥設計リストをローカルストレージから読み出し
+
 function loadFertilizerPlanList() {
 
     const data =
@@ -270,115 +263,5 @@ function loadFertilizerPlanList() {
     } else {
         fertilizerPlanList = [];
     }
-
-}
-
-
-// ------------------------------------------
-// テンプレートマスタの永続化
-// ------------------------------------------
-function saveTemplateMaster() {
-    localStorage.setItem("templateMaster", JSON.stringify(templateMaster));
-}
-
-function loadTemplateMaster() {
-    const data = localStorage.getItem("templateMaster");
-    templateMaster = data ? JSON.parse(data) : [];
-}
-
-// ------------------------------------------
-// テンプレートを保存
-// ------------------------------------------
-function saveTemplate({ type }) {
-
-if (type === "standard") {
-
-    const field =
-        document.getElementById("planField").value;
-
-    const fieldData =
-        fieldMaster.find(item => item.no == field);
-
-    const name =
-        `No.${fieldData.no} ${fieldData.owner} 標準`;
-　const template = {
-
-    id: crypto.randomUUID(),
-
-    name,
-
-    type,
-
-    fieldNo: field,
-
-    // 配列をコピーして保存
-    materials: structuredClone(planMaterials)
-
-};
-
-const index =
-    templateMaster.findIndex(item =>
-        item.type === "standard" &&
-        item.fieldNo == field
-    );
-    if (index >= 0) {
-
-    // 上書き
-    templateMaster[index] = template;
-
-} else {
-
-    // 新規追加
-    templateMaster.push(template);
-console.log("共通テンプレート保存");
-
-}
-
-    // 標準テンプレート保存
-
-}
-saveTemplateMaster();
-
-
-}
-
-// ------------------------------------------
-// テンプレートを読込
-// ------------------------------------------
-// ------------------------------------------
-// テンプレートを読込
-// ------------------------------------------
-function loadTemplate(template) {
-
-    // 資材をコピー
-    planMaterials = structuredClone(template.materials);
-
-    // 画面更新（合計も更新される）
-    renderPlanMaterials();
-
-}
-// ------------------------------------------
-// 標準テンプレートを読込
-// ------------------------------------------
-function loadStandardTemplate() {
-
-    const field =
-        document.getElementById("planField").value;
-
-    const template =
-        templateMaster.find(item =>
-            item.type === "standard" &&
-            item.fieldNo == field
-        );
-
-    if (!template) {
-
-        alert("標準テンプレートがありません。");
-
-        return;
-
-    }
-
-    loadTemplate(template);
 
 }

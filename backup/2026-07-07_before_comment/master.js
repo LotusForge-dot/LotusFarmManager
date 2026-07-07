@@ -7,7 +7,6 @@
 // ------------------------
 // 田んぼマスタ
 // ------------------------
-// マスタおよび画面表示状態管理用のグローバル変数
 let fertilizerPlanList = [];
 let workFormVisible = false;
 let workMaster = [];
@@ -18,8 +17,6 @@ let editingIndex = -1;
 let materialFormVisible = false;
 let materialMaster = [];
 let editingMaterialIndex = -1;
-
-// 田んぼマスタ管理画面のレンダリング
 function renderFieldMaster() {
 
     app.innerHTML = `
@@ -50,7 +47,6 @@ function renderFieldMaster() {
         .getElementById("btnToggleFieldForm")
         .addEventListener("click", toggleFieldForm);
 
-    // フォーム表示フラグが立っている場合のみ入力要素を注入
     if (fieldFormVisible) {
 
         document.getElementById("fieldForm").innerHTML = `
@@ -79,10 +75,9 @@ function renderFieldMaster() {
             });
 
     }
-renderFieldList(); // 下部に田んぼの一覧テーブルを描画
+renderFieldList();
 }
 
-// 田んぼフォームの開閉状態のトグル切り替え
 function toggleFieldForm() {
 
     fieldFormVisible = !fieldFormVisible;
@@ -94,7 +89,7 @@ function toggleFieldForm() {
 // ------------------------
 // 作業マスタ
 // ------------------------
-// 作業マスタ管理画面のレンダリング
+
 function renderWorkMaster() {
 
     app.innerHTML = `
@@ -125,7 +120,6 @@ function renderWorkMaster() {
         .getElementById("btnToggleWorkForm")
         .addEventListener("click", toggleWorkForm);
 
-    // フォーム表示フラグに応じた入力欄の展開
     if (workFormVisible) {
 
         document.getElementById("workForm").innerHTML = `
@@ -145,14 +139,14 @@ function renderWorkMaster() {
 
     }
 
-    renderWorkList(); // 下部に作業の一覧テーブルを描画
+    renderWorkList();
 
 }
 
 // ------------------------
 // 資材マスタ
 // ------------------------
-// 資材マスタ管理画面のレンダリング
+
 function renderMaterialMaster() {
 
     app.innerHTML = `
@@ -183,7 +177,6 @@ function renderMaterialMaster() {
         .getElementById("btnToggleMaterialForm")
         .addEventListener("click", toggleMaterialForm);
 
-    // 資材登録・編集用の詳細な入力欄（成分・単価など）の展開
     if (materialFormVisible) {
 
         document.getElementById("materialForm").innerHTML = `
@@ -263,30 +256,29 @@ kg
             .getElementById("btnSaveMaterial")
             .addEventListener("click", saveMaterial);
 
-        renderWorkCheckList(); // 資材に紐付けるための作業チェックボックス一覧を生成
+        renderWorkCheckList();
 
-        // 編集モード時には既存のマスタデータを各入力欄へ復元セット
+        // 編集時は値を復元
         if (editingMaterialIndex !== -1) {
 
             const material = materialMaster[editingMaterialIndex];
 
             document.getElementById("materialName").value = material.name;
             document.getElementById("materialUnit").value = material.unit || "";
-            document.getElementById("materialWeight").value =
-                material.weight || 0;
+document.getElementById("materialWeight").value =
+    material.weight || 0;
 
-            document.getElementById("materialN").value =
-                material.n || 0;
+document.getElementById("materialN").value =
+    material.n || 0;
 
-            document.getElementById("materialP").value =
-                material.p || 0;
+document.getElementById("materialP").value =
+    material.p || 0;
 
-            document.getElementById("materialK").value =
-                material.k || 0;
+document.getElementById("materialK").value =
+    material.k || 0;
 
-            document.getElementById("materialPrice").value =
-                material.price || 0;
-            // 使用可能作業のチェックボックスを復元
+document.getElementById("materialPrice").value =
+    material.price || 0;
             document
                 .querySelectorAll("#workCheckList input[type='checkbox']")
                 .forEach(check => {
@@ -299,12 +291,12 @@ kg
         }
     }
 
-    renderMaterialList(); // 下部に資材の一覧テーブルを描画
+    renderMaterialList();
 }
 // ------------------------
 // 田んぼ保存・更新
 // ------------------------
-// 入力された田んぼ情報の新規追加、または編集内容によるマスタ上書き処理
+
 function saveField() {
 
     const field = {
@@ -339,7 +331,7 @@ function saveField() {
 // ------------------------
 // 一覧表示
 // ------------------------
-// 登録済み田んぼマスタデータをテーブル形式で出力する処理
+
 function renderFieldList() {
 
     const list = document.getElementById("fieldList");
@@ -387,7 +379,7 @@ function renderFieldList() {
 // ------------------------
 // 編集
 // ------------------------
-// 田んぼマスタの特定インデックスデータを編集モードでフォームにセット
+
 function editField(index) {
 
     editingIndex = index;
@@ -407,7 +399,7 @@ function editField(index) {
 // ------------------------
 // 削除
 // ------------------------
-// 田んぼマスタから特定のデータを削除し保存・再描画
+
 function deleteField(index) {
 
     if (!confirm("この田んぼを削除しますか？")) {
@@ -428,7 +420,6 @@ function deleteField(index) {
 
 }
 
-// 作業マスタフォームの表示トグル
 function toggleWorkForm() {
 
     workFormVisible = !workFormVisible;
@@ -437,7 +428,6 @@ function toggleWorkForm() {
 
 }
 
-// 作業マスタの一覧テーブルのレンダリング
 function renderWorkList() {
 
     const list = document.getElementById("workList");
@@ -481,7 +471,7 @@ function renderWorkList() {
 // ------------------------
 // 作業保存
 // ------------------------
-// 入力された作業名の新規保存または既存作業情報の更新
+
 function saveWork() {
 
     const work = {
@@ -503,7 +493,7 @@ function saveWork() {
 
     workFormVisible = false
     
-    saveWorkMaster();
+　saveWorkMaster();
     renderWorkMaster();
     
 
@@ -511,7 +501,7 @@ function saveWork() {
 // ------------------------
 // 編集
 // ------------------------
-// 作業マスタの特定レコードを編集可能状態にする
+
 function editWork(index) {
 
     editingWorkIndex = index;
@@ -529,7 +519,7 @@ function editWork(index) {
 // ------------------------
 // 削除
 // ------------------------
-// 指定作業をマスタ配列から削除
+
 function deleteWork(index) {
 
     if (!confirm("この作業を削除しますか？")) {
@@ -543,14 +533,13 @@ function deleteWork(index) {
         workFormVisible = false;
     }
     
-    saveWorkMaster();
+　saveWorkMaster();
     renderWorkMaster();
     
 
 }
 
 
-// 資材マスタフォームの表示トグル
 function toggleMaterialForm() {
 
     materialFormVisible = !materialFormVisible;
@@ -558,7 +547,6 @@ function toggleMaterialForm() {
     renderMaterialMaster();
 
 }
-// 資材マスタに登録されている項目を詳細なテーブルで出力する処理
 function renderMaterialList() {
 
     const list = document.getElementById("materialList");
@@ -589,36 +577,36 @@ function renderMaterialList() {
 
     materialMaster.forEach((material, index) => {
        
-        const worksText = (material.works || []).join("、"); // 紐付けられた作業を読点区切りで結合
+const worksText = (material.works || []).join("、");
 
-        html += `
-        <tr>
-            <td>${material.name}</td>
+html += `
+<tr>
+    <td>${material.name}</td>
 
-            <td>${material.unit || ""}</td>
+    <td>${material.unit || ""}</td>
 
-            <td>
-                ${material.weight ? material.weight + "kg" : ""}
-            </td>
+    <td>
+        ${material.weight ? material.weight + "kg" : ""}
+    </td>
 
-            <td>${material.n || ""}</td>
+    <td>${material.n || ""}</td>
 
-            <td>${material.p || ""}</td>
+    <td>${material.p || ""}</td>
 
-            <td>${material.k || ""}</td>
+    <td>${material.k || ""}</td>
 
-            <td>
-                ${material.price ? material.price + "円" : ""}
-            </td>
+    <td>
+        ${material.price ? material.price + "円" : ""}
+    </td>
 
-            <td>${worksText}</td>
+    <td>${worksText}</td>
 
-            <td>
-                <button onclick="editMaterial(${index})">✏️</button>
-                <button onclick="deleteMaterial(${index})">🗑️</button>
-            </td>
-        </tr>
-        `;
+    <td>
+        <button onclick="editMaterial(${index})">✏️</button>
+        <button onclick="deleteMaterial(${index})">🗑️</button>
+    </td>
+</tr>
+`;
     });
 
     html += "</table>";
@@ -630,12 +618,11 @@ function renderMaterialList() {
 // ------------------------
 // 資材保存
 // ------------------------
-// 各成分、価格、およびチェックされた使用可能作業の配列を回収してマスタ保存
-function saveMaterial() {
-    const works = [];
 
-    // チェックのついている作業名をすべて抽出して配列化
-    document
+function saveMaterial() {
+　const works = [];
+
+　document
     .querySelectorAll("#workCheckList input[type='checkbox']")
     .forEach(check => {
 
@@ -688,14 +675,14 @@ function saveMaterial() {
     }
 
     materialFormVisible = false;
-    saveMaterialMaster();
+　saveMaterialMaster();
     renderMaterialMaster();
 
 }
 // ------------------------
 // 編集
 // ------------------------
-// 資材情報を変更するため、該当マスタデータをフォームに読み込み表示
+
 function editMaterial(index) {
 
     editingMaterialIndex = index;
@@ -708,8 +695,7 @@ function editMaterial(index) {
 
     document.getElementById("materialName").value = material.name;
     document.getElementById("materialUnit").value = material.unit;
-    // チェックボックスの状態をデータに合わせて再適用
-    document
+document
     .querySelectorAll("#workCheckList input[type='checkbox']")
     .forEach(check => {
 
@@ -723,7 +709,7 @@ function editMaterial(index) {
 // ------------------------
 // 削除
 // ------------------------
-// 特定の資材マスタを削除する処理
+
 function deleteMaterial(index) {
 
     if (!confirm("この資材を削除しますか？")) {
@@ -752,7 +738,7 @@ function deleteMaterial(index) {
 // ------------------------
 // 保存
 // ------------------------
-// 資材マスタデータをローカルストレージへ保存
+
 function saveMaterialMaster() {
 
     localStorage.setItem(
@@ -765,7 +751,7 @@ function saveMaterialMaster() {
 // ------------------------
 // 読込
 // ------------------------
-// ローカルストレージから資材マスタデータを読み出し
+
 function loadMaterialMaster() {
 
     const data = localStorage.getItem("materialMaster");
@@ -781,7 +767,7 @@ function loadMaterialMaster() {
 // ------------------------
 // 作業チェック一覧
 // ------------------------
-// 資材マスタ登録時、作業との紐付けを行うためのチェックボックス群を自動生成
+
 function renderWorkCheckList() {
 
     const list = document.getElementById("workCheckList");
@@ -812,10 +798,3 @@ function renderWorkCheckList() {
     list.innerHTML = html;
 
 }
-
-// ------------------------------------------
-// テンプレートマスタ
-// ------------------------------------------
-let templateMaster = [];
-
-
