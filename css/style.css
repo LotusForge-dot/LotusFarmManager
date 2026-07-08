@@ -159,3 +159,12 @@ body {
     font-weight:bold;
 
 }
+.tab {
+    background: #eee;
+    color: #333;
+}
+
+.tab.active {
+    background: #4caf50;
+    color: #fff;
+}
