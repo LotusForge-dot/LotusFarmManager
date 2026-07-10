@@ -26,6 +26,12 @@ let fertilizerMode = "base";
 // 選択中の田んぼID
 let selectedFieldIds = [];
 
+
+// ------------------------
+// 元肥入力中の資材一覧
+// ------------------------
+let baseFertilizerList = [];
+
 // ------------------------
 // 追肥入力中の資材一覧
 // ------------------------
@@ -33,6 +39,14 @@ let topFertilizerList = [];
 
 // 編集画面用データ
 let editFields = [];
+
+
+// ------------------------
+// 選択中の追肥作業
+// ------------------------
+let selectedTopWork = "追肥①";
+
+
 // ------------------------
 // 作業記録
 // ------------------------
@@ -1174,6 +1188,20 @@ function showFertilizerPlan() {
 
     loadFertilizerPlan();
 }
+
+//========================================
+// 施肥設計データ取得
+//========================================
+function getFertilizerPlan(year, field) {
+
+    return fertilizerPlanList.find(plan =>
+
+        plan.year === year &&
+        plan.field === field
+
+    );
+
+}
 // 選択中の年・田んぼに対応する既存の施肥設計データを読み込む
 function loadFertilizerPlan() {
 
@@ -1184,12 +1212,7 @@ function loadFertilizerPlan() {
         document.getElementById("planField").value;
 
     const plan =
-        fertilizerPlanList.find(p =>
-
-            p.year === year &&
-            p.field === field
-
-        );
+    getFertilizerPlan(year, field);
 
     if (plan) {
 
@@ -1757,18 +1780,6 @@ function showInput() {
 
             if (fertilizerMode === "base") {
 
-                html += `
-                    <div class="card">
-
-                        <h3>🌱 元肥入力</h3>
-
-                        <p>作成中</p>
-
-                    </div>
-                `;
-
-            } else {
-
                 let fieldListHtml = "";
 
                 fieldMaster.forEach(field => {
@@ -1791,9 +1802,9 @@ function showInput() {
                 
                     <div class="card">
 
-                        <h3>🌿 追肥入力</h3>
+                        <h3>🌿 元肥入力</h3>
 <label>作業日</label><br>
-  <input
+  
             <input
     type="date"
     id="recordDate"
@@ -1805,7 +1816,130 @@ function showInput() {
 
                     </div>
                 `;
-                let fertilizerHtml = "";
+                html += `
+<div class="card">
+
+    <button
+        class="mainButton"
+        onclick="loadBaseFertilizerFromPlan()">
+
+        📋施肥設計読込
+
+    </button>
+
+</div>
+
+<div id="baseFertilizerCards"></div>
+
+<div class="card">
+
+    <button
+        class="mainButton"
+        onclick="showFertilizerPlan()">
+
+        ⚙️施肥設計を編集
+
+    </button>
+
+    <br><br>
+
+    <button
+        class="mainButton"
+        onclick="saveTopFertilizer()">
+
+        💾保存
+
+    </button>
+
+</div>
+`;
+
+
+
+            
+
+
+            } else {
+
+                let fieldListHtml = "";
+
+                fieldMaster.forEach(field => {
+// この田んぼの施肥設計を取得
+const plan = getFertilizerPlan(
+    recordDate.substring(0, 4),
+    String(field.no)
+);
+
+if (!plan) {
+
+    return;
+
+}
+
+// 選択中の作業が登録されているか
+const hasWork = plan.materials.some(material =>
+    material.work === selectedTopWork
+);
+
+if (!hasWork) {
+
+    return;
+
+}
+                    const selected = selectedFieldIds.includes(String(field.no));
+
+                    fieldListHtml += `
+                        <button
+                            class="${selected ? "tab active" : "tab"}"
+                            onclick="toggleFieldSelection('${field.no}')">
+
+                            ${selected ? "☑" : "☐"} ${field.no}　${field.owner}
+
+                        </button>
+                    `;
+
+                });
+ // ------------------------
+// 追肥作業タブ
+// ------------------------
+let topWorkHtml = "";
+workMaster
+    .filter(work => work.category === "fertilizer")
+    .forEach(work => {
+const selected =
+    selectedTopWork === work.name;
+    topWorkHtml += `
+    <button
+        class="${selected ? "tab active" : "tab"}"
+        onclick="changeTopWork('${work.name}')">
+
+        ${work.name}
+
+    </button>
+`;
+});
+                html += `
+                
+                    <div class="card">
+
+                        <h3>🌿 追肥入力</h3>
+<label>作業日</label><br>
+  
+            <input
+    type="date"
+    id="recordDate"
+    value="${recordDate}"
+    onchange="recordDate = this.value"><br><br>
+        ${topWorkHtml}
+                        <p>田んぼを選択してください</p>
+
+                        ${fieldListHtml}
+
+                    </div>
+                    
+                `;
+                
+ 
 
 topFertilizerList.forEach((item, index) => {
 
@@ -1835,45 +1969,28 @@ const bags =
         `;
     });
 
-    fertilizerHtml += `
-        <div class="card">
-
-            <strong>${item.material}</strong><br>
-
-            袋/反
-            <input
-                type="number"
-                value="${item.rate}"
-                onchange="changeTopFertilizerRate(${index}, this.value)">
-
-            ${fieldHtml}
-
-            <button onclick="removeTopFertilizer(${index})">
-                🗑 削除
-            </button>
-
-        </div>
-    `;
+    
 
 });
                 html += `
-    <div class="card">
+                <button
+    class="mainButton"
+    onclick="loadTopFertilizerFromPlan()">
 
-        <h3>🌱 資材</h3>
-
-        <select id="fertilizerMaterial">
-
-        </select>
-
-  <button onclick="addTopFertilizer()">
-
-    ＋追加
+    📋施肥設計読込
 
 </button>
+    <div class="card">
+
+        <div id="topFertilizerCards"></div>
+
+        
+
+  
 <button onclick="saveTopFertilizer()">
     💾 保存
 </button>
-${fertilizerHtml}
+
 
     </div>
     
@@ -1979,8 +2096,139 @@ function changeInputTab(tab) {
     showInput();
 
 }
+// ------------------------
+// 元肥カード表示
+// ------------------------
+function renderBaseFertilizerCards() {
 
+    let html = "";
 
+    // fieldNoごとにグループ化
+    const grouped = {};
+
+    baseFertilizerList.forEach(item => {
+
+        if (!grouped[item.fieldNo]) {
+
+            grouped[item.fieldNo] = [];
+
+        }
+
+        grouped[item.fieldNo].push(item);
+
+    });
+
+    Object.keys(grouped).forEach(fieldNo => {
+
+        const field =
+            fieldMaster.find(item =>
+                String(item.no) === String(fieldNo)
+            );
+
+        let materialHtml = "";
+
+        grouped[fieldNo].forEach(item => {
+
+            materialHtml += `
+<div class="input-material">
+
+    <span>🌾 ${item.material}</span>
+
+    <span class="input-amount">
+        ${item.amount}袋
+    </span>
+
+</div>
+`;
+
+        });
+
+        html += `
+<div class="card">
+
+    <div class="input-card-title">
+        🌱 No.${field.no}　${field.owner}
+    </div>
+
+    <hr>
+
+    ${materialHtml}
+
+</div>
+`;
+
+    });
+
+    document.getElementById("baseFertilizerCards").innerHTML = html;
+
+}
+// ------------------------
+// 追肥カード表示
+// ------------------------
+
+function renderTopFertilizerCards() {
+
+    let html = "";
+
+    // fieldNoごとにグループ化
+    const grouped = {};
+
+    topFertilizerList.forEach(item => {
+
+        if (!grouped[item.fieldNo]) {
+
+            grouped[item.fieldNo] = [];
+
+        }
+
+        grouped[item.fieldNo].push(item);
+
+    });
+
+    Object.keys(grouped).forEach(fieldNo => {
+
+        const field =
+            fieldMaster.find(item =>
+                String(item.no) === String(fieldNo)
+            );
+
+        let materialHtml = "";
+
+        grouped[fieldNo].forEach(item => {
+
+            materialHtml += `
+<div class="input-material">
+
+    <span>🌾 ${item.material}</span>
+
+    <span class="input-amount">
+        ${item.amount}袋
+    </span>
+
+</div>
+`;
+
+        });
+
+        html += `
+<div class="card">
+
+    <div class="input-card-title">
+        🌱 No.${field.no}　${field.owner}
+    </div>
+
+    <hr>
+
+    ${materialHtml}
+
+</div>
+`;
+
+    });
+
+    document.getElementById("topFertilizerCards").innerHTML = html;
+
+}
 // ------------------------
 // 肥料入力モードを切り替える
 // ------------------------
@@ -2078,6 +2326,29 @@ showInput();
 
 }
 
+function addBaseFertilizer() {
+const date = document.getElementById("recordDate");
+
+if (date) {
+    recordDate = date.value;
+}
+    const materialName =
+        document.getElementById("fertilizerMaterial").value;
+
+    baseFertilizerList.push({
+
+        material: materialName,
+
+        rate: 1,
+
+        amount: ""
+
+    });
+
+    saveInputState();
+showInput();
+
+}
 
 // ------------------------
 // 追肥数量を変更
@@ -2194,6 +2465,14 @@ showInput();
 function changeTopFertilizerRate(index, value) {
 
     topFertilizerList[index].rate = Number(value);
+
+    showInput();
+
+}
+
+function changeBaseFertilizerRate(index, value) {
+
+    baseFertilizerList[index].rate = Number(value);
 
     showInput();
 
@@ -2436,3 +2715,110 @@ function changeEditMaterial(fieldIndex, materialIndex, value) {
         .material = value;
 
 }
+
+
+
+// ------------------------
+// 元肥を施肥設計から読込
+// ------------------------
+function loadBaseFertilizerFromPlan() {
+
+    // 一旦リセット
+    baseFertilizerList = [];
+
+    const year = recordDate.substring(0, 4);
+
+    for (const field of selectedFieldIds) {
+
+        const plan = getFertilizerPlan(year, field);
+
+        if (!plan) {
+
+            // あとで前年コピーなど
+            continue;
+
+        }
+
+        // 元肥だけ読込
+        for (const material of plan.materials) {
+
+            if (material.work !== "元肥") {
+
+                continue;
+
+            }
+
+            baseFertilizerList.push({
+
+                fieldNo: field,
+
+                material: material.material,
+
+                amount: material.amount
+
+            });
+
+        }
+
+    }
+
+    renderBaseFertilizerCards();
+
+}
+
+
+function loadTopFertilizerFromPlan() {
+
+    // 一旦リセット
+    topFertilizerList = [];
+
+    const year = recordDate.substring(0, 4);
+
+    for (const field of selectedFieldIds) {
+
+        const plan = getFertilizerPlan(year, field);
+
+        if (!plan) {
+
+            continue;
+
+        }
+
+        for (const material of plan.materials) {
+
+            // 選択した作業だけ読込
+            if (material.work !== selectedTopWork) {
+
+                continue;
+
+            }
+
+            topFertilizerList.push({
+
+                fieldNo: field,
+
+                material: material.material,
+
+                amount: material.amount
+
+            });
+
+        }
+
+    }
+
+    renderTopFertilizerCards();
+
+}
+
+// ------------------------
+// 追肥作業変更
+// ------------------------
+function changeTopWork(workName) {
+
+    selectedTopWork = workName;
+
+    showInput();
+
+}
+

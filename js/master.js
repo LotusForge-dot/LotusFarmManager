@@ -133,7 +133,21 @@ function renderWorkMaster() {
 
             <label>作業名</label><br>
             <input type="text" id="workName"><br><br>
+<label>カテゴリー</label><br>
 
+<select id="workCategory">
+
+    <option value="fertilizer">肥料</option>
+
+    <option value="spray">葉面散布</option>
+
+    <option value="weed">除草</option>
+
+    <option value="other">その他</option>
+
+</select>
+
+<br><br>
             <button id="btnSaveWork">
                 ${editingWorkIndex === -1 ? "保存" : "更新"}
             </button>
@@ -453,17 +467,41 @@ function renderWorkList() {
     let html = `
         <table border="1" width="100%" cellspacing="0" cellpadding="5">
 
-            <tr>
-                <th>作業名</th>
-                <th>操作</th>
-            </tr>
+            
+                <tr>
+    <th>作業名</th>
+    <th>カテゴリー</th>
+    <th>操作</th>
+</tr>
+            
     `;
 
     workMaster.forEach((work, index) => {
+let categoryName = "";
 
+switch (work.category) {
+
+    case "fertilizer":
+        categoryName = "肥料";
+        break;
+
+    case "spray":
+        categoryName = "葉面散布";
+        break;
+
+    case "weed":
+        categoryName = "除草";
+        break;
+
+    default:
+        categoryName = "その他";
+
+}
         html += `
+        
             <tr>
                 <td>${work.name}</td>
+                <td>${categoryName}</td>
                 <td>
                     <button onclick="editWork(${index})">✏️</button>
                     <button onclick="deleteWork(${index})">🗑️</button>
@@ -485,8 +523,12 @@ function renderWorkList() {
 function saveWork() {
 
     const work = {
-        name: document.getElementById("workName").value
-    };
+
+    name: document.getElementById("workName").value,
+
+    category: document.getElementById("workCategory").value
+
+};
 
     if (editingWorkIndex === -1) {
 
@@ -523,7 +565,8 @@ function editWork(index) {
     const work = workMaster[index];
 
     document.getElementById("workName").value = work.name;
-
+document.getElementById("workCategory").value =
+    work.category || "other";
 }
 
 // ------------------------

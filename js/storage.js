@@ -71,7 +71,12 @@ function loadWorkMaster() {
     } else {
         workMaster = [];
     }
+// 初回起動時のみデフォルト作業を登録
+if (workMaster.length === 0) {
 
+    createDefaultWorkMaster();
+
+}
 }// ------------------------
 // 作業記録保存
 // ------------------------
@@ -338,7 +343,7 @@ console.log("共通テンプレート保存");
 
 }
 saveTemplateMaster();
-
+renderTemplateSelect();
 
 }
 
@@ -420,7 +425,7 @@ templateMaster.push({
 
 });
 saveTemplateMaster();
-renderCommonTemplateSelect();
+renderTemplateSelect();
 
 }
 
@@ -478,6 +483,28 @@ function deleteCommonTemplate() {
 
     saveTemplateMaster();
 
-    renderCommonTemplateSelect();
+    renderTemplateSelect();
+
+}
+// ------------------------
+// 作業マスタ初期化
+// 初回起動時のみデフォルト作業を登録
+// ------------------------
+function createDefaultWorkMaster() {
+
+    workMaster = [
+
+        { name: "元肥", category: "fertilizer" },
+        { name: "追肥①", category: "fertilizer" },
+        { name: "追肥②", category: "fertilizer" },
+        { name: "追肥③", category: "fertilizer" },
+
+        { name: "葉面散布", category: "spray" },
+
+        { name: "除草", category: "weed" }
+
+    ];
+
+    saveWorkMaster();
 
 }
