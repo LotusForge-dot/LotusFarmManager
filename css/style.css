@@ -234,3 +234,111 @@ line-height: 1.8; }
 flex-end; gap: 8px; margin-top: 12px; }
 
 .history-buttons button { margin-left: 8px; }
+
+.spray-row{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:8px;
+
+    margin-top:8px;
+
+}
+
+.spray-row select{
+
+    flex:1;
+
+}
+
+.spray-row button{
+
+    width:40px;
+
+}
+
+
+
+
+
+
+
+
+
+/* ======================================== 
+   葉面散布入力のグリッド・レイアウト調整
+======================================== */
+
+/* 2カラムの共通横並びコンテナ */
+.spray-grid-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 8px;
+    box-sizing: border-box;
+}
+
+/* 左側の資材プルダウン枠（全体の48%） */
+.spray-col-material {
+    width: 48%;
+}
+
+/* 右側の倍率・数量・ボタン枠（全体の48%） */
+.spray-col-controls {
+    width: 48%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+}
+
+/* 追加リスト用の背景つき行スタイル */
+.spray-added-item {
+    background: #f5f5f5;
+    padding: 6px 0;
+    border-radius: 4px;
+}
+
+/* プルダウンの高さと角丸を統一 */
+.spray-grid-row select {
+    height: 38px;
+    font-size: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+}
+
+/* 右側の中での倍率プルダウンの幅指定 */
+.spray-col-controls select {
+    width: 65%;
+}
+
+/* 必要量のテキスト表示 */
+.spray-item-amount {
+    width: 23%;
+    font-weight: bold;
+    color: #1b5e20;
+    font-size: 13px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* ❌ボタンのスタイル */
+.spray-item-del-btn {
+    width: 12%;
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    text-align: right;
+    padding: 0;
+}
+
+
+
+
+
+

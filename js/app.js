@@ -1912,19 +1912,86 @@ ${fieldListHtml}
 
             break;
 
-        case "spray":
-
+                    
+                    case "spray":
             html = `
-                <div class="card">
+                <div class="card" style="padding: 15px;">
+                    <h3 style="margin-top: 0;">💧 葉面散布入力</h3>
 
-                    <h3>💧 葉面散布入力</h3>
+                    <!-- 散布量（タンク容量） -->
+                    <div style="margin-bottom: 20px; background: #e8f5e9; padding: 12px; border-radius: 6px; border: 1px solid #c8e6c9;">
+                        <label style="font-weight: bold; color: #2e7d32; font-size: 15px;">📊 今日の散布量 (タンク容量)</label><br>
+                        <select id="foliarTank" onchange="calculateSprayAmounts()" style="width: 100%; height: 40px; margin-top: 6px; font-size: 16px; border: 1px solid #a5d6a7; border-radius: 4px; background: #fff;">
+                            <option value="100">100L</option>
+                            <option value="200" selected>200L</option>
+                            <option value="300">300L</option>
+                            <option value="500">500L</option>
+                        </select>
+                    </div>
 
-                    <p>作成中</p>
+                    <!-- 【★配置修正】田んぼ選択エリア（資材グリッドの外側・上部） -->
+                    <div class="input-group" style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: bold; margin-bottom: 8px; color: #2e7d32; font-size: 14px;">
+                            🌾 田んぼを選択してください（複数選択可）
+                        </label>
+                        <!-- JSでこの中にボタン風の要素を並べます -->
+                        <div id="foliarFieldButtonsContainer" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <!-- JSで動的に挿入されます -->
+                        </div>
+                    </div>
 
+                    <!-- ラベル部分 -->
+                    <div class="spray-grid-row" style="margin-bottom: 2px;">
+                        <div class="spray-col-material">
+                            <label style="font-weight: bold; font-size: 14px; color: #333;">資材</label>
+                        </div>
+                        <div class="spray-col-controls">
+                            <label style="font-weight: bold; font-size: 14px; color: #333;">倍率</label>
+                            <span class="spray-item-amount"></span>
+                            <div class="spray-item-del-btn"></div>
+                        </div>
+                    </div>
+
+                    <!-- メイン入力欄 -->
+                    <div class="spray-grid-row" style="margin-bottom: 15px;">
+                        <!-- 左：資材 -->
+                        <div class="spray-col-material">
+                            <select id="sprayMaterial" onchange="renderSprayDilutions()"></select>
+                        </div>
+                        
+                        <!-- 右：倍率 ＆ メインの計算結果 ＆ ダミーのスペース -->
+                        <div class="spray-col-controls">
+                            <select id="sprayDilution" onchange="calculateSprayAmounts()"></select>
+                            
+                            <!-- 上の入力欄の計算結果 -->
+                            <span id="mainSprayAmount" class="spray-item-amount"></span>
+                            
+                            <!-- 🌟 ❌マークを消して、下のボタンと完全に位置を揃えるための透明な枠に変更 -->
+                            <div class="spray-item-del-btn" style="visibility: hidden;">❌</div>
+                        </div>
+                    </div>
+
+                    <!-- 追加されたリスト -->
+                    <div id="sprayMaterialList"></div>
+                    
+                    <br>
+
+                    <!-- 追加ボタン -->
+                    <button class="mainButton" onclick="addSprayMaterial()" style="width: 100%; padding: 12px; font-weight: bold; background-color: #2e7d32; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;">
+                        ＋資材追加
+                    </button>
+                    <!-- 「+資材追加」ボタンのすぐ下に追加 -->
+                    <div style="margin-top: 20px;">
+                        <button id="saveFoliarBtn" class="btn btn-primary" onclick="saveFoliarRecord()" style="width: 100%; padding: 12px; font-size: 16px; font-weight: bold;">
+                            📝 この内容で記録する
+                        </button>
+                    </div>
+ 
                 </div>
             `;
-
             break;
+
+
 
         case "herbicide":
 
@@ -2006,9 +2073,22 @@ ${fieldListHtml}
         </div>
     `;
 
-    renderFertilizerOptions();
+       // app.js の showInput() 末尾
+    if (inputTab === "spray") {
+        renderSprayMaterialList(); // マスタからメイン選択肢を生成
+        initFoliarFieldButtons();  // 田んぼボタンを生成
+        calculateSprayAmounts();   // 初期計算を実行
+    }
 
 }
+
+
+
+
+
+
+
+
 // 入力画面のタブを切り替える
 function changeInputTab(tab) {
 
@@ -3148,4 +3228,422 @@ function calculateHistorySummary(records) {
 
     };
 
+}
+
+function addSprayMaterial() {
+
+    const materialIndex =
+        document.getElementById("sprayMaterial").value;
+
+    if (materialIndex === "") return;
+
+    const dilution =
+        document.getElementById("sprayDilution").value;
+
+    sprayMaterials.push({
+
+        materialIndex: Number(materialIndex),
+        dilution: Number(dilution),
+        amount: 0
+
+    });
+
+    renderSprayMaterialItems();
+
+}
+/**
+ * 葉面散布の入力内容をローカルストレージに保存する
+ */
+/**
+ * 葉面散布の入力内容をアプリ共通のrecordListへ一括保存する
+ */
+function saveFoliarRecord() {
+    // 1. 田んぼの選択チェック（タップで選択されたselectedFieldIdsを使用）
+    if (selectedFieldIds.length === 0) {
+        alert("散布する田んぼを少なくとも1つ選択してください。");
+        return;
+    }
+
+    // 2. タンク容量の取得（HTMLの id="foliarTank" から取得）
+    const tankSelect = document.getElementById("foliarTank");
+    const tankSize = tankSelect ? tankSelect.value + "L" : "未設定";
+
+    const materials = [];
+
+    // 3. メイン入力欄（現在選択されている資材）の取得
+    const mainMaterialSelect = document.getElementById("sprayMaterial");
+    const mainAmountSpan = document.getElementById("mainSprayAmount");
+
+    if (mainMaterialSelect && mainMaterialSelect.value !== "") {
+        const matIndex = Number(mainMaterialSelect.value);
+        const matMaster = materialMaster[matIndex];
+        if (matMaster) {
+            materials.push({
+                material: matMaster.name,
+                amount: mainAmountSpan ? mainAmountSpan.textContent.trim() : ""
+            });
+        }
+    }
+
+    // 4. 動的に追加されたリスト（もし sprayMaterials 配列があれば）の取得
+    if (typeof sprayMaterials !== "undefined" && sprayMaterials.length > 0) {
+        sprayMaterials.forEach(item => {
+            const matMaster = materialMaster[item.materialIndex];
+            if (matMaster) {
+                materials.push({
+                    material: matMaster.name,
+                    amount: item.amount ? item.amount + (matMaster.unit || "L") : ""
+                });
+            }
+        });
+    }
+
+    if (materials.length === 0) {
+        alert("資材を1つ以上選択・追加してください。");
+        return;
+    }
+
+    // 5. アプリ共通の recordList 構造（元肥・追肥と同じ）に合わせてオブジェクトを作成
+    const record = {
+        date: recordDate || getToday(),
+        work: "葉面散布",
+        memo: `タンク容量: ${tankSize}`,
+        fields: []
+    };
+
+    // 選択されたすべての田んぼを fields 配列に格納
+    selectedFieldIds.forEach(fieldNo => {
+        record.fields.push({
+            fieldNo: Number(fieldNo),
+            materials: materials.map(m => ({
+                material: m.material,
+                amount: m.amount
+            }))
+        });
+    });
+
+    // 6. アプリ共通の配列へ追加し、共通の永続化関数を実行
+    recordList.push(record);
+    if (typeof saveRecordList === "function") {
+        saveRecordList();
+    }
+
+    alert("葉面散布の記録を保存しました！");
+
+    // 7. 状態のクリアと画面遷移
+    selectedFieldIds = [];
+    if (typeof sprayMaterials !== "undefined") {
+        sprayMaterials = [];
+    }
+    
+    // 履歴画面を表示して保存結果を確認
+    if (typeof showHistory === "function") {
+        showHistory();
+    } else {
+        showInput();
+    }
+}
+/**
+ * 葉面散布画面用の田んぼ選択ボタンを動的に生成する
+ */
+function initFoliarFieldButtons() {
+    const container = document.getElementById("foliarFieldButtonsContainer");
+    if (!container) return;
+
+    container.innerHTML = "";
+    // 葉面散布を開いた時は一旦選択状態をクリア
+    selectedFieldIds = [];
+
+    if (!fieldMaster || fieldMaster.length === 0) {
+        container.innerHTML = `<span style="color: #888; font-size: 14px;">※設定画面で田んぼを登録してください</span>`;
+        return;
+    }
+
+    fieldMaster.forEach(field => {
+        const btn = document.createElement("div");
+        btn.className = "foliar-field-btn";
+        btn.dataset.id = String(field.no);
+        btn.textContent = `☐ ${field.no} ${field.owner}`;
+
+        // アプリ全体のデザインに合わせた枠線スタイル
+        btn.style.padding = "8px 12px";
+        btn.style.border = "1px solid #333";
+        btn.style.borderRadius = "4px";
+        btn.style.backgroundColor = "#fff";
+        btn.style.color = "#000";
+        btn.style.cursor = "pointer";
+        btn.style.fontSize = "15px";
+        btn.style.userSelect = "none";
+        btn.style.transition = "all 0.1s";
+
+        btn.addEventListener("click", function() {
+            const fieldId = btn.dataset.id;
+            const index = selectedFieldIds.indexOf(fieldId);
+
+            if (index >= 0) {
+                // 選択解除
+                selectedFieldIds.splice(index, 1);
+                btn.style.backgroundColor = "#fff";
+                btn.style.color = "#000";
+                btn.style.border = "1px solid #333";
+                btn.textContent = `☐ ${field.no} ${field.owner}`;
+            } else {
+                // 選択 (肥料の追肥アクティブ時の緑色 #2e7d32 に統一)
+                selectedFieldIds.push(fieldId);
+                btn.style.backgroundColor = "#2e7d32";
+                btn.style.color = "#fff";
+                btn.style.border = "1px solid #2e7d32";
+                btn.textContent = `☑ ${field.no} ${field.owner}`;
+            }
+            console.log("選択中の田んぼID:", selectedFieldIds);
+        });
+
+        container.appendChild(btn);
+    });
+}
+
+/**
+ * 葉面散布の入力内容をアプリ共通のrecordListへ一括保存する
+ */
+function saveFoliarRecord() {
+    // 1. 田んぼの選択チェック
+    if (selectedFieldIds.length === 0) {
+        alert("散布する田んぼを少なくとも1つ選択してください。");
+        return;
+    }
+
+    // 2. タンク容量の取得
+    const tankSelect = document.getElementById("foliarTank");
+    const tankSize = tankSelect ? tankSelect.value + "L" : "未設定";
+
+    // 3. 資材データの取得
+    // メイン行の資材情報を取得
+    const mainMaterialSelect = document.getElementById("sprayMaterial");
+    const mainDilutionSelect = document.getElementById("sprayDilution");
+    const mainAmountSpan = document.getElementById("mainSprayAmount");
+
+    const materials = [];
+
+    // メインの入力欄に選択がある場合
+    if (mainMaterialSelect && mainMaterialSelect.value !== "") {
+        // マスタから名前を特定
+        const matIndex = Number(mainMaterialSelect.value);
+        const matMaster = materialMaster[matIndex];
+        if (matMaster) {
+            materials.push({
+                material: matMaster.name,
+                amount: mainAmountSpan ? mainAmountSpan.textContent.trim() : ""
+            });
+        }
+    }
+
+    // 動的に追加されたリスト（sprayMaterials）がある場合の取得処理
+    if (typeof sprayMaterials !== "undefined" && sprayMaterials.length > 0) {
+        sprayMaterials.forEach(item => {
+            const matMaster = materialMaster[item.materialIndex];
+            if (matMaster) {
+                // 計算結果テキストの取得ロジック（環境に合わせて調整してください）
+                materials.push({
+                    material: matMaster.name,
+                    amount: item.amount ? item.amount + (matMaster.unit || "L") : ""
+                });
+            }
+        });
+    }
+
+    if (materials.length === 0) {
+        alert("資材を1つ以上選択・追加してください。");
+        return;
+    }
+
+    // 4. アプリ共通の recordList 構造に合わせてオブジェクトを作成
+    // 元肥や追肥と同様に、選択された複数の田んぼ（fields配列）を一挙に格納します
+    const record = {
+        date: recordDate || getToday(),
+        work: "葉面散布",
+        memo: `タンク容量: ${tankSize}`,
+        fields: []
+    };
+
+    selectedFieldIds.forEach(fieldNo => {
+        record.fields.push({
+            fieldNo: Number(fieldNo),
+            materials: materials.map(m => ({
+                material: m.material,
+                amount: m.amount // 履歴表示の互換性のため文字列のまま格納
+            }))
+        });
+    });
+
+    // 5. グローバル配列へ追加し、既存の永続化関数を実行
+    recordList.push(record);
+    if (typeof saveRecordList === "function") {
+        saveRecordList();
+    }
+
+    alert("葉面散布の記録を保存しました！");
+
+    // 6. 状態クリアと画面リフレッシュ
+    selectedFieldIds = [];
+    if (typeof sprayMaterials !== "undefined") {
+        sprayMaterials = [];
+    }
+    
+    if (typeof showHistory === "function") {
+        showHistory(); // 履歴画面へ遷移して結果を確認
+    } else {
+        showInput();
+    }
+}
+/**
+ * 葉面散布画面用の田んぼ選択ボタンを動的に生成する
+ */
+function initFoliarFieldButtons() {
+    const container = document.getElementById("foliarFieldButtonsContainer");
+    if (!container) return;
+
+    container.innerHTML = "";
+    // 葉面散布を開いた時は一旦選択状態をクリア
+    selectedFieldIds = [];
+
+    if (!fieldMaster || fieldMaster.length === 0) {
+        container.innerHTML = `<span style="color: #888; font-size: 14px;">※設定画面で田んぼを登録してください</span>`;
+        return;
+    }
+
+    fieldMaster.forEach(field => {
+        const btn = document.createElement("div");
+        btn.className = "foliar-field-btn";
+        btn.dataset.id = String(field.no);
+        btn.textContent = `☐ ${field.no} ${field.owner}`;
+
+        // アプリ全体のデザインに合わせた枠線スタイル
+        btn.style.padding = "8px 12px";
+        btn.style.border = "1px solid #333";
+        btn.style.borderRadius = "4px";
+        btn.style.backgroundColor = "#fff";
+        btn.style.color = "#000";
+        btn.style.cursor = "pointer";
+        btn.style.fontSize = "15px";
+        btn.style.userSelect = "none";
+        btn.style.transition = "all 0.1s";
+
+        btn.addEventListener("click", function() {
+            const fieldId = btn.dataset.id;
+            const index = selectedFieldIds.indexOf(fieldId);
+
+            if (index >= 0) {
+                // 選択解除
+                selectedFieldIds.splice(index, 1);
+                btn.style.backgroundColor = "#fff";
+                btn.style.color = "#000";
+                btn.style.border = "1px solid #333";
+                btn.textContent = `☐ ${field.no} ${field.owner}`;
+            } else {
+                // 選択 (肥料の追肥アクティブ時の緑色 #2e7d32 に統一)
+                selectedFieldIds.push(fieldId);
+                btn.style.backgroundColor = "#2e7d32";
+                btn.style.color = "#fff";
+                btn.style.border = "1px solid #2e7d32";
+                btn.textContent = `☑ ${field.no} ${field.owner}`;
+            }
+            console.log("選択中の田んぼID:", selectedFieldIds);
+        });
+
+        container.appendChild(btn);
+    });
+}
+
+/**
+ * 葉面散布の入力内容をアプリ共通のrecordListへ一括保存する
+ */
+function saveFoliarRecord() {
+    // 1. 田んぼの選択チェック
+    if (selectedFieldIds.length === 0) {
+        alert("散布する田んぼを少なくとも1つ選択してください。");
+        return;
+    }
+
+    // 2. タンク容量の取得
+    const tankSelect = document.getElementById("foliarTank");
+    const tankSize = tankSelect ? tankSelect.value + "L" : "未設定";
+
+    // 3. 資材データの取得
+    // メイン行の資材情報を取得
+    const mainMaterialSelect = document.getElementById("sprayMaterial");
+    const mainDilutionSelect = document.getElementById("sprayDilution");
+    const mainAmountSpan = document.getElementById("mainSprayAmount");
+
+    const materials = [];
+
+    // メインの入力欄に選択がある場合
+    if (mainMaterialSelect && mainMaterialSelect.value !== "") {
+        // マスタから名前を特定
+        const matIndex = Number(mainMaterialSelect.value);
+        const matMaster = materialMaster[matIndex];
+        if (matMaster) {
+            materials.push({
+                material: matMaster.name,
+                amount: mainAmountSpan ? mainAmountSpan.textContent.trim() : ""
+            });
+        }
+    }
+
+    // 動的に追加されたリスト（sprayMaterials）がある場合の取得処理
+    if (typeof sprayMaterials !== "undefined" && sprayMaterials.length > 0) {
+        sprayMaterials.forEach(item => {
+            const matMaster = materialMaster[item.materialIndex];
+            if (matMaster) {
+                // 計算結果テキストの取得ロジック（環境に合わせて調整してください）
+                materials.push({
+                    material: matMaster.name,
+                    amount: item.amount ? item.amount + (matMaster.unit || "L") : ""
+                });
+            }
+        });
+    }
+
+    if (materials.length === 0) {
+        alert("資材を1つ以上選択・追加してください。");
+        return;
+    }
+
+    // 4. アプリ共通の recordList 構造に合わせてオブジェクトを作成
+    // 元肥や追肥と同様に、選択された複数の田んぼ（fields配列）を一挙に格納します
+    const record = {
+        date: recordDate || getToday(),
+        work: "葉面散布",
+        memo: `タンク容量: ${tankSize}`,
+        fields: []
+    };
+
+    selectedFieldIds.forEach(fieldNo => {
+        record.fields.push({
+            fieldNo: Number(fieldNo),
+            materials: materials.map(m => ({
+                material: m.material,
+                amount: m.amount // 履歴表示の互換性のため文字列のまま格納
+            }))
+        });
+    });
+
+    // 5. グローバル配列へ追加し、既存の永続化関数を実行
+    recordList.push(record);
+    if (typeof saveRecordList === "function") {
+        saveRecordList();
+    }
+
+    alert("葉面散布の記録を保存しました！");
+
+    // 6. 状態クリアと画面リフレッシュ
+    selectedFieldIds = [];
+    if (typeof sprayMaterials !== "undefined") {
+        sprayMaterials = [];
+    }
+    
+    if (typeof showHistory === "function") {
+        showHistory(); // 履歴画面へ遷移して結果を確認
+    } else {
+        showInput();
+    }
 }
