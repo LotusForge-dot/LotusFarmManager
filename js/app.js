@@ -229,6 +229,7 @@ function showHistory() {
     .getElementById("historyYear")
     .addEventListener("change", renderHistoryList);
 }
+
 // ------------------------
 // 設定
 // ------------------------
@@ -594,7 +595,7 @@ console.log(record);
 
                             const unit = master ? master.unit : "袋";
 
-                            return `${material.material} ${material.bags}${unit}`;
+                            return `${material.material} ${material.amount}${unit}`;
 
                         })
                         .join("<br>");
@@ -653,17 +654,7 @@ function renderHistoryList() {
 
     }
 
-    let html = `
-        <table border="1" width="100%" cellspacing="0" cellpadding="5">
-
-        <tr>
-            <th>日付</th>
-            <th>作業</th>
-            <th>内容</th>
-            <th>備考</th>
-            <th>操作</th>
-        </tr>
-    `;
+    let html = "";
 
     const filteredRecords = recordList
 
@@ -713,141 +704,35 @@ function renderHistoryList() {
 
         });
 
-    const materialSummary = {};
+    // ------------------------
+// 履歴集計
+// ------------------------
+const summary =
+    calculateHistorySummary(
+        filteredRecords
+    );
 
-    let totalN = 0;
-    let totalP = 0;
-    let totalK = 0;
-    let totalCost = 0;
+    html += createHistoryListHtml(
+    filteredRecords
+);
 
-    filteredRecords.forEach(record => {
+    html += createHistorySummaryHtml(
 
-        record.fields.forEach(field => {
+    filteredRecords,
 
-            field.materials.forEach(material => {
+    summary.materialSummary,
 
-                const master =
-                    materialMaster.find(m => m.name === material.material);
+    summary.totalN,
 
-                const amount = Number(material.bags);
+    summary.totalP,
 
-                if (master) {
+    summary.totalK,
 
-                    totalN += amount * master.weight * master.n / 100;
-                    totalP += amount * master.weight * master.p / 100;
-                    totalK += amount * master.weight * master.k / 100;
-                    totalCost += amount * master.price;
+    summary.totalCost
 
-                }
+);
 
-                if (!materialSummary[material.material]) {
-
-                    materialSummary[material.material] = 0;
-
-                }
-
-                materialSummary[material.material] += amount;
-
-            });
-
-        });
-
-        const originalIndex =
-            recordList.indexOf(record);
-
-        const detailText = record.fields
-
-            .map(field => {
-
-                const fieldInfo =
-                    fieldMaster.find(f => f.no == field.fieldNo);
-
-                const fieldName = fieldInfo
-                    ? `No.${fieldInfo.no}<br>${fieldInfo.owner}`
-                    : `No.${field.fieldNo}`;
-
-                const materials = field.materials
-
-                    .map(material => {
-
-                        const master =
-                            materialMaster.find(m => m.name === material.material);
-
-                        const unit =
-                            master ? master.unit : "袋";
-
-                        return `${material.material} ${material.bags}${unit}`;
-
-                    })
-
-                    .join("<br>");
-
-                return `<b>${fieldName}</b><br>${materials}`;
-
-            })
-
-            .join("<hr>");
-
-        html += `
-            <tr>
-                <td>${record.date}</td>
-                <td>${record.work}</td>
-                <td>${detailText}</td>
-                <td>${record.memo || ""}</td>
-                <td class="action-buttons">
-                    <button onclick="editRecord(${originalIndex})">✏️</button>
-                    <button onclick="deleteRecord(${originalIndex})">🗑️</button>
-                </td>
-            </tr>
-        `;
-
-    });
-
-    let materialHtml = "";
-
-    for (const name in materialSummary) {
-
-        const master =
-            materialMaster.find(m => m.name === name);
-
-        const unit =
-            master ? master.unit : "";
-
-        materialHtml += `${name}：${materialSummary[name]}${unit}<br>`;
-
-    }
-
-    if (materialHtml === "") {
-
-        materialHtml = "使用資材なし";
-
-    }
-
-    html += "</table>";
-
-    html += `
-        <hr>
-
-        <h3>📊 集計</h3>
-
-        <p>対象件数：${filteredRecords.length}件</p>
-
-        <h4>使用資材</h4>
-
-        ${materialHtml}
-
-        <h4>肥料成分</h4>
-
-        N：${Number(totalN.toFixed(2))} kg<br>
-        P：${Number(totalP.toFixed(2))} kg<br>
-        K：${Number(totalK.toFixed(2))} kg
-
-        <h4>資材費</h4>
-
-        ${Number(totalCost.toFixed(0)).toLocaleString()} 円
-    `;
-
-    list.innerHTML = html;
+list.innerHTML = html;
 
 }
 // ------------------------
@@ -1747,7 +1632,8 @@ ${name}
  * 今後すべての作業入力の共通画面となる。
  * タブ切り替えにより、肥料・葉面散布・除草剤・その他を表示する。
  */
-function showInput() {
+
+ function showInput() {
 
     let html = "";
 
@@ -1784,7 +1670,8 @@ function showInput() {
 
                 fieldMaster.forEach(field => {
 
-                    const selected = selectedFieldIds.includes(String(field.no));
+                    const selected =
+                        selectedFieldIds.includes(String(field.no));
 
                     fieldListHtml += `
                         <button
@@ -1799,24 +1686,31 @@ function showInput() {
                 });
 
                 html += `
-                
+
                     <div class="card">
 
                         <h3>🌿 元肥入力</h3>
+
 <label>作業日</label><br>
-  
-            <input
+
+<input
     type="date"
     id="recordDate"
     value="${recordDate}"
-    onchange="recordDate = this.value"><br><br>
+    onchange="recordDate = this.value">
+
+<br><br>
+
                         <p>田んぼを選択してください</p>
 
                         ${fieldListHtml}
 
                     </div>
+
                 `;
+
                 html += `
+
 <div class="card">
 
     <button
@@ -1852,41 +1746,48 @@ function showInput() {
     </button>
 
 </div>
+
 `;
-
-
-
-            
-
 
             } else {
 
+                // ------------------------
+                // 追肥対象田んぼ一覧
+                // ------------------------
+
                 let fieldListHtml = "";
 
+                const year = recordDate.substring(0, 4);
+
                 fieldMaster.forEach(field => {
-// この田んぼの施肥設計を取得
-const plan = getFertilizerPlan(
-    recordDate.substring(0, 4),
-    String(field.no)
-);
 
-if (!plan) {
+                    const plan =
+                        getFertilizerPlan(
+                            year,
+                            String(field.no)
+                        );
 
-    return;
+                    if (!plan) {
 
-}
+                        return;
 
-// 選択中の作業が登録されているか
-const hasWork = plan.materials.some(material =>
-    material.work === selectedTopWork
-);
+                    }
 
-if (!hasWork) {
+                    const hasWork =
+                        plan.materials.some(material =>
+                            material.work === selectedTopWork
+                        );
 
-    return;
+                    if (!hasWork) {
 
-}
-                    const selected = selectedFieldIds.includes(String(field.no));
+                        return;
+
+                    }
+
+                    const selected =
+                        selectedFieldIds.includes(
+                            String(field.no)
+                        );
 
                     fieldListHtml += `
                         <button
@@ -1899,101 +1800,112 @@ if (!hasWork) {
                     `;
 
                 });
- // ------------------------
-// 追肥作業タブ
-// ------------------------
-let topWorkHtml = "";
-workMaster
-    .filter(work => work.category === "fertilizer")
-    .forEach(work => {
-const selected =
-    selectedTopWork === work.name;
-    topWorkHtml += `
-    <button
-        class="${selected ? "tab active" : "tab"}"
-        onclick="changeTopWork('${work.name}')">
 
-        ${work.name}
+                // ------------------------
+                // 追肥作業タブ
+                // ------------------------
 
-    </button>
+                let topWorkHtml = "";
+
+                workMaster
+
+                    .filter(work =>
+                        work.category === "fertilizer"
+                       &&
+        work.name !== "元肥" 
+                    )
+
+                    .forEach(work => {
+
+                        const selected =
+                            selectedTopWork === work.name;
+
+                        topWorkHtml += `
+
+<button
+    class="${selected ? "tab active" : "tab"}"
+    onclick="changeTopWork('${work.name}')">
+
+    ${work.name}
+
+</button>
+
 `;
-});
-                html += `
-                
-                    <div class="card">
 
-                        <h3>🌿 追肥入力</h3>
+                    });
+
+                html += `
+
+<div class="card">
+
+<h3>🌿 追肥入力</h3>
+
 <label>作業日</label><br>
-  
-            <input
+
+<input
     type="date"
     id="recordDate"
     value="${recordDate}"
-    onchange="recordDate = this.value"><br><br>
-        ${topWorkHtml}
-                        <p>田んぼを選択してください</p>
+    onchange="recordDate = this.value">
 
-                        ${fieldListHtml}
+<br><br>
 
-                    </div>
-                    
-                `;
-                
- 
+${topWorkHtml}
 
-topFertilizerList.forEach((item, index) => {
+<p>田んぼを選択してください</p>
 
-    let fieldHtml = "";
+${fieldListHtml}
 
-    selectedFieldIds.forEach(fieldNo => {
+</div>
 
-        const field =
-            fieldMaster.find(f => String(f.no) === String(fieldNo));
+`;
 
-        if (!field) return;
+                // ------------------------
+                // 追肥カード
+                // ------------------------
 
-        const area = Number(field.area);
-
-const rawBags = area * item.rate;
-
-const bags =
-    rawBags % 1 >= 0.4
-        ? Math.ceil(rawBags)
-        : Math.floor(rawBags);
-
-        fieldHtml += `
-            <div>
-                ${field.no} ${field.owner}
-                ：${bags.toFixed(1)}袋
-            </div>
-        `;
-    });
-
-    
-
-});
                 html += `
-                <button
-    class="mainButton"
-    onclick="loadTopFertilizerFromPlan()">
 
-    📋施肥設計読込
+<div class="card">
 
-</button>
-    <div class="card">
+    <button
+        class="mainButton"
+        onclick="loadTopFertilizerFromPlan()">
 
-        <div id="topFertilizerCards"></div>
+        📋施肥設計読込
 
-        
+    </button>
 
-  
-<button onclick="saveTopFertilizer()">
-    💾 保存
-</button>
+</div>
 
+<div class="card">
 
-    </div>
-    
+    <div id="topFertilizerCards"></div>
+
+</div>
+
+<div class="card">
+
+    <button
+        class="mainButton"
+        onclick="showFertilizerPlan()">
+
+        ⚙️施肥設計を編集
+
+    </button>
+
+    <br><br>
+
+    <button
+        class="mainButton"
+        onclick="saveTopFertilizer()">
+
+        💾保存
+
+    </button>
+
+</div>
+
 `;
 
             }
@@ -2048,7 +1960,9 @@ const bags =
         <div class="page">
 
             <div class="page-header">
+
                 <h2>📝 入力</h2>
+
             </div>
 
             <div class="tab-container">
@@ -2056,25 +1970,33 @@ const bags =
                 <button
                     class="${inputTab === "fertilizer" ? "tab active" : "tab"}"
                     onclick="changeInputTab('fertilizer')">
+
                     🌱 肥料
+
                 </button>
 
                 <button
                     class="${inputTab === "spray" ? "tab active" : "tab"}"
                     onclick="changeInputTab('spray')">
+
                     💧 葉面散布
+
                 </button>
 
                 <button
                     class="${inputTab === "herbicide" ? "tab active" : "tab"}"
                     onclick="changeInputTab('herbicide')">
+
                     🌿 除草剤
+
                 </button>
 
                 <button
                     class="${inputTab === "other" ? "tab active" : "tab"}"
                     onclick="changeInputTab('other')">
+
                     📦 その他
+
                 </button>
 
             </div>
@@ -2083,8 +2005,8 @@ const bags =
 
         </div>
     `;
-renderFertilizerOptions()
 
+    renderFertilizerOptions();
 
 }
 // 入力画面のタブを切り替える
@@ -2168,12 +2090,17 @@ function renderBaseFertilizerCards() {
 
 function renderTopFertilizerCards() {
 
+    console.log("===== renderTopFertilizerCards =====");
+    console.log("topFertilizerList =", topFertilizerList);
+
     let html = "";
 
     // fieldNoごとにグループ化
     const grouped = {};
 
     topFertilizerList.forEach(item => {
+
+        console.log("item =", item);
 
         if (!grouped[item.fieldNo]) {
 
@@ -2185,16 +2112,24 @@ function renderTopFertilizerCards() {
 
     });
 
+    console.log("grouped =", grouped);
+
     Object.keys(grouped).forEach(fieldNo => {
+
+        console.log("fieldNo =", fieldNo);
 
         const field =
             fieldMaster.find(item =>
                 String(item.no) === String(fieldNo)
             );
 
+        console.log("field =", field);
+
         let materialHtml = "";
 
         grouped[fieldNo].forEach(item => {
+
+            console.log("表示する資材 =", item);
 
             materialHtml += `
 <div class="input-material">
@@ -2225,6 +2160,8 @@ function renderTopFertilizerCards() {
 `;
 
     });
+
+    console.log("描画HTML =", html);
 
     document.getElementById("topFertilizerCards").innerHTML = html;
 
@@ -2373,111 +2310,87 @@ function removeTopFertilizer(index) {
 }
 
 
-function saveTopFertilizer() {
 
-    console.log("保存");
-
-}
 
 /**
  * 追肥入力内容を保存用データに変換する
  */
 function saveTopFertilizer() {
 
-    // 保存用データを作成
     const record = {
 
-        // 作業日
-        
         date: recordDate,
 
-        // 作業名
-        work: "追肥",
+        work: fertilizerMode === "base"
+            ? "元肥"
+            : selectedTopWork,
 
-        // 田んぼごとのデータ
+        memo: "",
+
         fields: []
 
     };
 
-    // 選択された田んぼを順番に処理
+    const sourceList =
+        fertilizerMode === "base"
+            ? baseFertilizerList
+            : topFertilizerList;
+
     selectedFieldIds.forEach(fieldNo => {
 
-        // 田んぼマスタから情報を取得
         const field = fieldMaster.find(
             f => String(f.no) === String(fieldNo)
         );
 
-        // 保存用の田んぼデータを作成
+        if (!field) {
+
+            return;
+
+        }
+
         const fieldRecord = {
 
-            // 田んぼNo.
             fieldNo: field.no,
 
-            // 使用した資材一覧
             materials: []
 
         };
-// 使用した資材を追加
-topFertilizerList.forEach(item => {
 
-    const area = Number(field.area);
+        // この田んぼの資材だけ保存
+        sourceList
+            .filter(item =>
+                String(item.fieldNo) === String(fieldNo)
+            )
+            .forEach(item => {
 
-    const rawBags = area * item.rate;
+                fieldRecord.materials.push({
 
-    const bags =
-        rawBags % 1 >= 0.4
-            ? Math.ceil(rawBags)
-            : Math.floor(rawBags);
+                    material: item.material,
 
-    fieldRecord.materials.push({
+                    amount: item.amount
 
-        material: item.material,
+                });
 
-        bags: bags
+            });
+
+        // 資材がある田んぼだけ保存
+        if (fieldRecord.materials.length > 0) {
+
+            record.fields.push(fieldRecord);
+
+        }
 
     });
 
-});
-        // 保存データに追加
-        record.fields.push(fieldRecord);
+    recordList.push(record);
 
-    });
+    saveRecordList();
 
-    console.log(record);
-
-// 履歴に追加
-
-recordList.push(record);
-
-// 保存
-saveRecordList();
-recordDate = getToday();
-
-console.log(recordList);
-
-
-// 入力画面を更新
-showInput();
-}
-
-
-
-function changeTopFertilizerRate(index, value) {
-
-    topFertilizerList[index].rate = Number(value);
+    recordDate = getToday();
 
     showInput();
 
 }
-
-function changeBaseFertilizerRate(index, value) {
-
-    baseFertilizerList[index].rate = Number(value);
-
-    showInput();
-
-}
-
 
 function getToday() {
 
@@ -2569,7 +2482,7 @@ editFields.forEach((field, fieldIndex) => {
 
     <input
     type="number"
-    value="${material.bags}"
+    value="${material.amount}"
     onchange="changeEditBags(${fieldIndex}, ${materialIndex}, this.value)">
 
     袋
@@ -2631,7 +2544,7 @@ function changeEditBags(fieldIndex, materialIndex, value) {
 
     editFields[fieldIndex]
         .materials[materialIndex]
-        .bags = Number(value);
+        .amount = Number(value);
 
 }
 
@@ -2697,7 +2610,7 @@ function addEditMaterial(fieldIndex) {
     editFields[fieldIndex].materials.push({
 
         material: "",
-        bags: 0
+        amount: 0
 
     });
 
@@ -2766,7 +2679,9 @@ function loadBaseFertilizerFromPlan() {
 
 }
 
-
+// ------------------------
+// 施肥設計から追肥読込
+// ------------------------
 function loadTopFertilizerFromPlan() {
 
     // 一旦リセット
@@ -2774,28 +2689,35 @@ function loadTopFertilizerFromPlan() {
 
     const year = recordDate.substring(0, 4);
 
-    for (const field of selectedFieldIds) {
+    if (selectedFieldIds.length === 0) {
 
-        const plan = getFertilizerPlan(year, field);
+        renderTopFertilizerCards();
+
+        return;
+
+    }
+
+    selectedFieldIds.forEach(fieldNo => {
+
+        const plan = getFertilizerPlan(year, fieldNo);
 
         if (!plan) {
 
-            continue;
+            return;
 
         }
 
-        for (const material of plan.materials) {
+        plan.materials.forEach(material => {
 
-            // 選択した作業だけ読込
             if (material.work !== selectedTopWork) {
 
-                continue;
+                return;
 
             }
 
             topFertilizerList.push({
 
-                fieldNo: field,
+                fieldNo: fieldNo,
 
                 material: material.material,
 
@@ -2803,22 +2725,427 @@ function loadTopFertilizerFromPlan() {
 
             });
 
-        }
+        });
 
-    }
+    });
 
     renderTopFertilizerCards();
 
 }
-
 // ------------------------
 // 追肥作業変更
 // ------------------------
-function changeTopWork(workName) {
 
-    selectedTopWork = workName;
+
+// ------------------------
+// 追肥作業選択
+// ------------------------
+function changeTopWork(work) {
+
+    selectedTopWork = work;
+
+    selectedFieldIds = [];
+    topFertilizerList = [];
 
     showInput();
 
 }
 
+
+// ------------------------
+// 追肥対象田んぼ選択
+// ------------------------
+function selectTopField(fieldNo) {
+
+    // 選択田んぼ
+    selectedFieldIds = [String(fieldNo)];
+
+    // 施肥設計から読込
+    loadTopFertilizerFromPlan();
+
+}
+
+// ------------------------
+// 履歴1件分のHTML生成
+// ------------------------
+function renderHistoryRecord(record, originalIndex) {
+
+    const detailText = record.fields
+
+        .map(field => {
+
+            const fieldInfo =
+                fieldMaster.find(f => f.no == field.fieldNo);
+
+            const fieldName =
+                fieldInfo
+                    ? `No.${fieldInfo.no}<br>${fieldInfo.owner}`
+                    : `No.${field.fieldNo}`;
+
+            const materials = field.materials
+
+                .map(material => {
+
+                    const master =
+                        materialMaster.find(
+                            m => m.name === material.material
+                        );
+
+                    const unit =
+                        master ? master.unit : "袋";
+
+                    return `${material.material} ${material.amount}${unit}`;
+
+                })
+
+                .join("<br>");
+
+            return `
+                <b>${fieldName}</b><br>
+                ${materials}
+            `;
+
+        })
+
+        .join("<hr>");
+
+    return `
+        <tr>
+
+            <td>${record.date}</td>
+
+            <td>${record.work}</td>
+
+            <td>${detailText}</td>
+
+            <td>${record.memo || ""}</td>
+
+            <td class="action-buttons">
+
+                <button
+                    onclick="editRecord(${originalIndex})">
+
+                    ✏️
+
+                </button>
+
+                <button
+                    onclick="deleteRecord(${originalIndex})">
+
+                    🗑️
+
+                </button>
+
+            </td>
+
+        </tr>
+    `;
+
+}
+
+// ------------------------
+// 履歴詳細HTML生成
+// ------------------------
+function createHistoryDetailHtml(record) {
+
+    return record.fields
+
+        .map(field => {
+
+            const fieldInfo =
+                fieldMaster.find(
+                    f => String(f.no) === String(field.fieldNo)
+                );
+
+            const fieldName =
+                fieldInfo
+                    ? `No.${fieldInfo.no}　${fieldInfo.owner}`
+                    : `No.${field.fieldNo}`;
+
+            const materials = field.materials
+
+                .map(material => {
+
+                    const master =
+                        materialMaster.find(
+                            m => m.name === material.material
+                        );
+
+                    const unit =
+                        master ? master.unit : "";
+
+                    return `
+                        ${material.material}
+                        ${material.amount}${unit}
+                    `;
+
+                })
+
+                .join("<br>");
+
+            return `
+                <div class="history-field">
+
+                    <b>${fieldName}</b><br>
+
+                    ${materials}
+
+                </div>
+            `;
+
+        })
+
+        .join("<hr>");
+
+}
+// ------------------------
+// 履歴カードHTML生成
+// ------------------------
+function renderHistoryCard(record, originalIndex) {
+
+    return `
+
+        <div class="card">
+
+            <h3>${record.work}</h3>
+
+            ${createHistoryDetailHtml(record)}
+
+            ${record.memo
+                ? `<hr><b>備考</b><br>${record.memo}`
+                : ""}
+
+            <br><br>
+
+            <button
+                onclick="editRecord(${originalIndex})">
+
+                ✏️ 編集
+
+            </button>
+
+            <button
+                onclick="deleteRecord(${originalIndex})">
+
+                🗑️ 削除
+
+            </button>
+
+        </div>
+
+    `;
+
+}
+
+
+// ------------------------
+// 日付カードHTML生成
+// ------------------------
+function renderHistoryDateCard(date, records) {
+
+    let html = `
+
+        <div class="card">
+
+            <h2>📅 ${date}</h2>
+
+    `;
+
+    records.forEach(record => {
+
+        const originalIndex =
+            recordList.indexOf(record);
+
+        html += renderHistoryCard(
+            record,
+            originalIndex
+        );
+
+    });
+
+    html += `
+
+        </div>
+
+    `;
+
+    return html;
+
+}
+
+// ------------------------
+// 日付ごとに履歴をグループ化
+// ------------------------
+function groupHistoryByDate(records) {
+
+    const grouped = {};
+
+    records.forEach(record => {
+
+        if (!grouped[record.date]) {
+
+            grouped[record.date] = [];
+
+        }
+
+        grouped[record.date].push(record);
+
+    });
+
+    return grouped;
+
+}
+// ------------------------
+// 履歴一覧HTML生成
+// ------------------------
+function createHistoryListHtml(records) {
+
+    const grouped =
+        groupHistoryByDate(records);
+
+    let html = "";
+
+    Object.keys(grouped)
+
+        .sort((a, b) => b.localeCompare(a))
+
+        .forEach(date => {
+
+            html += renderHistoryDateCard(
+                date,
+                grouped[date]
+            );
+
+        });
+
+    return html;
+
+}
+// ------------------------
+// 履歴集計HTML生成
+// ------------------------
+function createHistorySummaryHtml(
+    filteredRecords,
+    materialSummary,
+    totalN,
+    totalP,
+    totalK,
+    totalCost
+) {
+
+    let materialHtml = "";
+
+    for (const name in materialSummary) {
+
+        const master =
+            materialMaster.find(
+                m => m.name === name
+            );
+
+        const unit =
+            master ? master.unit : "";
+
+        materialHtml +=
+            `${name}：${materialSummary[name]}${unit}<br>`;
+
+    }
+
+    if (materialHtml === "") {
+
+        materialHtml = "使用資材なし";
+
+    }
+
+    return `
+
+        <hr>
+
+        <h3>📊 集計</h3>
+
+        <p>対象件数：${filteredRecords.length}件</p>
+
+        <h4>使用資材</h4>
+
+        ${materialHtml}
+
+        <h4>肥料成分</h4>
+
+        N：${Number(totalN.toFixed(2))} kg<br>
+        P：${Number(totalP.toFixed(2))} kg<br>
+        K：${Number(totalK.toFixed(2))} kg
+
+        <h4>資材費</h4>
+
+        ${Number(totalCost.toFixed(0)).toLocaleString()} 円
+
+    `;
+
+}
+
+// ------------------------
+// 履歴集計
+// ------------------------
+function calculateHistorySummary(records) {
+
+    const materialSummary = {};
+
+    let totalN = 0;
+    let totalP = 0;
+    let totalK = 0;
+    let totalCost = 0;
+
+    records.forEach(record => {
+
+        record.fields.forEach(field => {
+
+            field.materials.forEach(material => {
+
+                const master =
+                    materialMaster.find(
+                        m => m.name === material.material
+                    );
+
+                const amount =
+                    Number(material.amount);
+
+                if (master) {
+
+                    totalN +=
+                        amount * master.weight * master.n / 100;
+
+                    totalP +=
+                        amount * master.weight * master.p / 100;
+
+                    totalK +=
+                        amount * master.weight * master.k / 100;
+
+                    totalCost +=
+                        amount * master.price;
+
+                }
+
+                if (!materialSummary[material.material]) {
+
+                    materialSummary[material.material] = 0;
+
+                }
+
+                materialSummary[material.material] += amount;
+
+            });
+
+        });
+
+    });
+
+    return {
+
+        materialSummary,
+        totalN,
+        totalP,
+        totalK,
+        totalCost
+
+    };
+
+}
