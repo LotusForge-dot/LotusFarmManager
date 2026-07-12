@@ -1917,7 +1917,8 @@ ${fieldListHtml}
             html = `
                 <div class="card" style="padding: 15px;">
                     <h3 style="margin-top: 0;">💧 葉面散布入力</h3>
-
+<label>日付</label>
+<input type="date" id="recordDate">
                     <!-- 散布量（タンク容量） -->
                     <div style="margin-bottom: 20px; background: #e8f5e9; padding: 12px; border-radius: 6px; border: 1px solid #c8e6c9;">
                         <label style="font-weight: bold; color: #2e7d32; font-size: 15px;">📊 今日の散布量 (タンク容量)</label><br>
@@ -2075,10 +2076,14 @@ ${fieldListHtml}
 
        // app.js の showInput() 末尾
     if (inputTab === "spray") {
-        renderSprayMaterialList(); // マスタからメイン選択肢を生成
-        initFoliarFieldButtons();  // 田んぼボタンを生成
-        calculateSprayAmounts();   // 初期計算を実行
-    }
+    renderSprayMaterialList(); // マスタからメイン選択肢を生成
+    initFoliarFieldButtons();  // 田んぼボタンを生成
+
+    document.getElementById("recordDate").value =
+        recordDate || getToday();
+
+    calculateSprayAmounts();   // 初期計算を実行
+}
 
 }
 
@@ -2928,54 +2933,30 @@ function renderHistoryRecord(record, originalIndex) {
 // ------------------------
 function createHistoryDetailHtml(record) {
 
-    return record.fields
+    const firstMaterial =
+        record.fields[0]?.materials[0];
 
-        .map(field => {
+    if (!firstMaterial) {
+        return "";
+    }
 
-            const fieldInfo =
-                fieldMaster.find(
-                    f => String(f.no) === String(field.fieldNo)
-                );
+    const master =
+        materialMaster.find(
+            m => m.name === firstMaterial.material
+        );
+console.log(firstMaterial.material);
+console.log(master);
+console.log(master?.category);
+console.log(
+materialMaster.find(m => m.name === "ペンタキープ")
+);
+    if (master?.category === "spray") {
 
-            const fieldName =
-                fieldInfo
-                    ? `No.${fieldInfo.no}　${fieldInfo.owner}`
-                    : `No.${field.fieldNo}`;
+        return createSprayDetailHtml(record);
 
-            const materials = field.materials
+    }
 
-                .map(material => {
-
-                    const master =
-                        materialMaster.find(
-                            m => m.name === material.material
-                        );
-
-                    const unit =
-                        master ? master.unit : "";
-
-                    return `
-                        ${material.material}
-                        ${material.amount}${unit}
-                    `;
-
-                })
-
-                .join("<br>");
-
-            return `
-                <div class="history-field">
-
-                    <b>${fieldName}</b><br>
-
-                    ${materials}
-
-                </div>
-            `;
-
-        })
-
-        .join("<hr>");
+    return createNormalDetailHtml(record);
 
 }
 // ------------------------
@@ -3114,6 +3095,7 @@ function createHistorySummaryHtml(
 ) {
 
     let materialHtml = "";
+console.log(materialSummary);
 
     for (const name in materialSummary) {
 
@@ -3126,7 +3108,7 @@ function createHistorySummaryHtml(
             master ? master.unit : "";
 
         materialHtml +=
-            `${name}：${materialSummary[name]}${unit}<br>`;
+    `${name}：${materialSummary[name].amount}${materialSummary[name].unit}<br>`;
 
     }
 
@@ -3185,33 +3167,38 @@ function calculateHistorySummary(records) {
                         m => m.name === material.material
                     );
 
-                const amount =
-                    Number(material.amount);
+               const amount = Number(material.amount);
 
-                if (master) {
+console.log(material);
+console.log(material.amount);
+console.log(amount); 
 
-                    totalN +=
-                        amount * master.weight * master.n / 100;
+                if (master && master.category === "fertilizer") {
 
-                    totalP +=
-                        amount * master.weight * master.p / 100;
+    totalN +=
+        amount * master.weight * master.n / 100;
 
-                    totalK +=
-                        amount * master.weight * master.k / 100;
+    totalP +=
+        amount * master.weight * master.p / 100;
 
-                    totalCost +=
-                        amount * master.price;
+    totalK +=
+        amount * master.weight * master.k / 100;
 
-                }
+    totalCost +=
+        amount * master.price;
+
+}
 
                 if (!materialSummary[material.material]) {
 
-                    materialSummary[material.material] = 0;
+    materialSummary[material.material] = {
+        amount: 0,
+        unit: master ? master.unit : material.unit
+    };
 
-                }
+}
 
-                materialSummary[material.material] += amount;
-
+materialSummary[material.material].amount += amount;
             });
 
         });
@@ -3426,16 +3413,21 @@ function saveFoliarRecord() {
 
     // メインの入力欄に選択がある場合
     if (mainMaterialSelect && mainMaterialSelect.value !== "") {
-        // マスタから名前を特定
-        const matIndex = Number(mainMaterialSelect.value);
-        const matMaster = materialMaster[matIndex];
-        if (matMaster) {
-            materials.push({
-                material: matMaster.name,
-                amount: mainAmountSpan ? mainAmountSpan.textContent.trim() : ""
-            });
-        }
+
+    const matIndex = Number(mainMaterialSelect.value);
+    const matMaster = materialMaster[matIndex];
+
+    const dilution = Number(mainDilutionSelect.value);
+    const tankVolume = Number(tankSelect.value);
+
+    if (matMaster && dilution > 0) {
+        materials.push({
+            material: matMaster.name,
+            amount: tankVolume / dilution,
+            unit: matMaster.unit || "L"
+        });
     }
+}
 
     // 動的に追加されたリスト（sprayMaterials）がある場合の取得処理
     if (typeof sprayMaterials !== "undefined" && sprayMaterials.length > 0) {
@@ -3444,9 +3436,10 @@ function saveFoliarRecord() {
             if (matMaster) {
                 // 計算結果テキストの取得ロジック（環境に合わせて調整してください）
                 materials.push({
-                    material: matMaster.name,
-                    amount: item.amount ? item.amount + (matMaster.unit || "L") : ""
-                });
+    material: matMaster.name,
+    amount: item.amount || 0,
+    unit: matMaster.unit || "L"
+});
             }
         });
     }
@@ -3466,14 +3459,15 @@ function saveFoliarRecord() {
     };
 
     selectedFieldIds.forEach(fieldNo => {
-        record.fields.push({
-            fieldNo: Number(fieldNo),
-            materials: materials.map(m => ({
-                material: m.material,
-                amount: m.amount // 履歴表示の互換性のため文字列のまま格納
-            }))
-        });
+    record.fields.push({
+        fieldNo: Number(fieldNo),
+        materials: materials.map(m => ({
+            material: m.material,
+            amount: m.amount,
+            unit: m.unit
+        }))
     });
+});
 
     // 5. グローバル配列へ追加し、既存の永続化関数を実行
     recordList.push(record);
@@ -3569,7 +3563,6 @@ function saveFoliarRecord() {
     const tankSize = tankSelect ? tankSelect.value + "L" : "未設定";
 
     // 3. 資材データの取得
-    // メイン行の資材情報を取得
     const mainMaterialSelect = document.getElementById("sprayMaterial");
     const mainDilutionSelect = document.getElementById("sprayDilution");
     const mainAmountSpan = document.getElementById("mainSprayAmount");
@@ -3578,26 +3571,26 @@ function saveFoliarRecord() {
 
     // メインの入力欄に選択がある場合
     if (mainMaterialSelect && mainMaterialSelect.value !== "") {
-        // マスタから名前を特定
         const matIndex = Number(mainMaterialSelect.value);
         const matMaster = materialMaster[matIndex];
+
         if (matMaster) {
             materials.push({
                 material: matMaster.name,
-                amount: mainAmountSpan ? mainAmountSpan.textContent.trim() : ""
+                amount: parseFloat(mainAmountSpan.textContent)   // ←変更
             });
         }
     }
 
-    // 動的に追加されたリスト（sprayMaterials）がある場合の取得処理
+    // 動的に追加されたリスト
     if (typeof sprayMaterials !== "undefined" && sprayMaterials.length > 0) {
         sprayMaterials.forEach(item => {
             const matMaster = materialMaster[item.materialIndex];
+
             if (matMaster) {
-                // 計算結果テキストの取得ロジック（環境に合わせて調整してください）
                 materials.push({
                     material: matMaster.name,
-                    amount: item.amount ? item.amount + (matMaster.unit || "L") : ""
+                    amount: item.amount   // ←変更
                 });
             }
         });
@@ -3608,42 +3601,161 @@ function saveFoliarRecord() {
         return;
     }
 
-    // 4. アプリ共通の recordList 構造に合わせてオブジェクトを作成
-    // 元肥や追肥と同様に、選択された複数の田んぼ（fields配列）を一挙に格納します
     const record = {
-        date: recordDate || getToday(),
-        work: "葉面散布",
-        memo: `タンク容量: ${tankSize}`,
-        fields: []
-    };
-
+    date: document.getElementById("recordDate").value,
+    work: "葉面散布",
+    memo: `タンク容量: ${tankSize}`,
+    fields: []
+};
     selectedFieldIds.forEach(fieldNo => {
         record.fields.push({
             fieldNo: Number(fieldNo),
             materials: materials.map(m => ({
                 material: m.material,
-                amount: m.amount // 履歴表示の互換性のため文字列のまま格納
+                amount: m.amount
             }))
         });
     });
 
-    // 5. グローバル配列へ追加し、既存の永続化関数を実行
     recordList.push(record);
+
     if (typeof saveRecordList === "function") {
         saveRecordList();
     }
 
     alert("葉面散布の記録を保存しました！");
 
-    // 6. 状態クリアと画面リフレッシュ
     selectedFieldIds = [];
+
     if (typeof sprayMaterials !== "undefined") {
         sprayMaterials = [];
     }
-    
+
     if (typeof showHistory === "function") {
-        showHistory(); // 履歴画面へ遷移して結果を確認
+        showHistory();
     } else {
         showInput();
     }
+}
+
+function createNormalDetailHtml(record) {
+
+    return record.fields
+
+        .map(field => {
+
+            const fieldInfo =
+                fieldMaster.find(
+                    f => String(f.no) === String(field.fieldNo)
+                );
+
+            const fieldName =
+                fieldInfo
+                    ? `No.${fieldInfo.no}　${fieldInfo.owner}`
+                    : `No.${field.fieldNo}`;
+
+            const materials = field.materials
+
+                .map(material => {
+
+                    const master =
+                        materialMaster.find(
+                            m => m.name === material.material
+                        );
+
+                    const unit =
+                        master ? master.unit : "";
+
+                    return `
+                        ${material.material}
+                        ${material.amount}${unit}
+                    `;
+
+                })
+
+                .join("<br>");
+
+            return `
+                <div class="history-field">
+
+                    <b>${fieldName}</b><br>
+
+                    ${materials}
+
+                </div>
+            `;
+
+        })
+
+        .join("<hr>");
+
+}
+
+// ------------------------
+// 葉面散布履歴詳細HTML生成
+// ------------------------
+function createSprayDetailHtml(record) {
+
+    const materials = [];
+
+    record.fields.forEach(field => {
+
+        field.materials.forEach(material => {
+
+            const master = materialMaster.find(
+                m => m.name === material.material
+            );
+
+            const unit = master ? master.unit : "";
+
+            if (!materials.some(m => m.name === material.material)) {
+
+                materials.push({
+    name: material.material,
+    amount: material.amount,
+    unit: material.unit || unit
+});
+
+            }
+
+        });
+
+    });
+console.log(materials);
+    const materialHtml = materials.map(m => {
+
+    let amount = Number(m.amount);
+    let unit = m.unit;
+
+    if (unit === "L" && amount < 1) {
+        amount *= 1000;
+        unit = "mL";
+    }
+
+    return `${m.name}　${amount}${unit}`;
+
+}).join("<br>");
+console.log(materialHtml);
+    const fieldHtml = record.fields.map(field => {
+
+        const fieldInfo = fieldMaster.find(
+            f => String(f.no) === String(field.fieldNo)
+        );
+
+        return fieldInfo
+            ? `No.${fieldInfo.no}　${fieldInfo.owner}`
+            : `No.${field.fieldNo}`;
+
+    }).join("<br>");
+
+    return `
+        <b>使用資材</b><br>
+        ${materialHtml}
+
+        <hr>
+
+        <b>対象田んぼ</b><br>
+        ${fieldHtml}
+    `;
+console.log(materialHtml);
 }

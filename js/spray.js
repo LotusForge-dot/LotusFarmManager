@@ -178,6 +178,7 @@ function calculateSprayAmounts() {
         } else {
             mainAmountSpan.textContent = "";
         }
+        mainAmountSpan.dataset.amount = mainAmount;
     }
 
     sprayMaterials.forEach(item => {

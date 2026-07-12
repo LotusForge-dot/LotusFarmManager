@@ -23,6 +23,19 @@ let editingMaterialIndex = -1;
 // ========================================
 let materialDilutions = [];
 
+// ========================================
+// カテゴリー
+
+// ========================
+const MATERIAL_CATEGORIES = [
+    { value: "fertilizer", label: "肥料" },
+    { value: "variety", label: "品種" },
+    { value: "spray", label: "葉面散布" },
+    { value: "pesticide", label: "農薬" },
+    { value: "soil", label: "土壌改良材" },
+    { value: "other", label: "その他" }
+];
+
 // 田んぼマスタ管理画面のレンダリング
 function renderFieldMaster() {
     app.innerHTML = `
@@ -298,6 +311,13 @@ function renderMaterialMaster() {
             <br>
             <label>資材名</label><br>
             <input type="text" id="materialName"><br><br>
+            <label>カテゴリー</label><br>
+<select id="materialCategory"></select>
+<br><br>
+
+
+
+<br><br>
             <label>単位</label><br>
             <select id="materialUnit">
 
@@ -339,7 +359,11 @@ function renderMaterialMaster() {
         
         document.getElementById("btnSaveMaterial").addEventListener("click", saveMaterial);
         document.getElementById("btnAddDilution").addEventListener("click", addDilution);
+const categorySelect = document.getElementById("materialCategory");
 
+categorySelect.innerHTML = MATERIAL_CATEGORIES.map(c =>
+    `<option value="${c.value}">${c.label}</option>`
+).join("");
         renderDilutionInputs();
         renderWorkCheckList();
 
@@ -355,7 +379,8 @@ function renderMaterialMaster() {
             document.getElementById("materialP").value = material.p || 0;
             document.getElementById("materialK").value = material.k || 0;
             document.getElementById("materialPrice").value = material.price || 0;
-                
+           document.getElementById("materialCategory").value =
+    material.category || "fertilizer";     
             document.querySelectorAll("#workCheckList input[type='checkbox']").forEach(check => {
                 check.checked = material.works && material.works.includes(check.value);
             });
@@ -371,50 +396,69 @@ function toggleMaterialForm() {
 
 function renderMaterialList() {
     const list = document.getElementById("materialList");
+
     if (materialMaster.length === 0) {
         list.innerHTML = "<p>まだ登録されていません。</p>";
         return;
     }
 
-    let html = `
-        <table border="1" width="100%" cellspacing="0" cellpadding="5">
-            <tr>
-                <th>資材名</th>
-                <th>単位</th>
-                <th>内容量</th>
-                <th>N</th>
-                <th>P</th>
-                <th>K</th>
-                <th>単価</th>
-                <th>倍率</th>
-                <th>使用可能作業</th>
-                <th>操作</th>
-            </tr>
-    `;
+    let html = "";
 
-    materialMaster.forEach((material, index) => {
-        const dilutionsText = (material.dilutions || []).map(v => v + "倍").join("、");
-        const worksText = (material.works || []).join("、");
+    MATERIAL_CATEGORIES.forEach(category => {
+
+        const materials = materialMaster.filter(
+            material => material.category === category.value
+        );
+
+        if (materials.length === 0) return;
 
         html += `
-        <tr>
-            <td>${material.name}</td>
-            <td>${material.unit || ""}</td>
-            <td>${material.weight ? material.weight + "kg" : ""}</td>
-            <td>${material.n || ""}</td>
-            <td>${material.p || ""}</td>
-            <td>${material.k || ""}</td>
-            <td>${material.price ? material.price + "円" : ""}</td>
-            <td>${dilutionsText}</td>
-            <td>${worksText}</td>
-            <td>
-                <button onclick="editMaterial(${index})">✏️</button>
-                <button onclick="deleteMaterial(${index})">🗑️</button>
-            </td>
-        </tr>
+            <h3>${category.label}</h3>
+            <table border="1" width="100%" cellspacing="0" cellpadding="5">
+                <tr>
+                    <th>資材名</th>
+                    
+                    <th>単位</th>
+                    <th>内容量</th>
+                    <th>N</th>
+                    <th>P</th>
+                    <th>K</th>
+                    <th>単価</th>
+                    <th>倍率</th>
+                    <th>使用可能作業</th>
+                    <th>操作</th>
+                </tr>
         `;
+
+        materials.forEach(material => {
+
+            const dilutionsText = (material.dilutions || []).map(v => v + "倍").join("、");
+            const worksText = (material.works || []).join("、");
+            const index = materialMaster.indexOf(material);
+
+            html += `
+                <tr>
+                    <td>${material.name}</td>
+                    <td>${material.unit || ""}</td>
+                    <td>${material.weight ? material.weight + "kg" : ""}</td>
+                    <td>${material.n || ""}</td>
+                    <td>${material.p || ""}</td>
+                    <td>${material.k || ""}</td>
+                    <td>${material.price ? material.price + "円" : ""}</td>
+                    <td>${dilutionsText}</td>
+                    <td>${worksText}</td>
+                    <td>
+                        <button onclick="editMaterial(${index})">✏️</button>
+                        <button onclick="deleteMaterial(${index})">🗑️</button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `</table><br>`;
+
     });
-    html += "</table>";
+
     list.innerHTML = html;
 }
 
@@ -426,6 +470,7 @@ function saveMaterial() {
 
     const material = {
         name: document.getElementById("materialName").value,
+        category: document.getElementById("materialCategory").value,
         unit: document.getElementById("materialUnit").value,
         weight: Number(document.getElementById("materialWeight").value),
         n: Number(document.getElementById("materialN").value),
@@ -456,7 +501,8 @@ function editMaterial(index) {
     const material = materialMaster[index];
     document.getElementById("materialName").value = material.name;
     document.getElementById("materialUnit").value = material.unit;
-    
+    document.getElementById("materialCategory").value =
+    material.category || "fertilizer";
     document.querySelectorAll("#workCheckList input[type='checkbox']").forEach(check => {
         check.checked = material.works && material.works.includes(check.value);
     });
@@ -533,8 +579,19 @@ function renderDilutionInputs() {
     });
     area.innerHTML = html;
 }
-
+// 指定した資材の希釈設定を削除して入力欄を更新
 function removeDilution(index) {
     materialDilutions.splice(index, 1);
     renderDilutionInputs();
+}
+// 資材カテゴリーコードから表示名を取得
+function getMaterialCategoryName(category) {
+    switch (category) {
+        case "fertilizer": return "肥料";
+        case "variety": return "品種";
+        case "spray": return "葉面散布";
+        case "pesticide": return "農薬";
+        case "soil": return "土壌改良材";
+        default: return "その他";
+    }
 }
