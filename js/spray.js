@@ -1,6 +1,7 @@
 // ==========================================
 // 葉面散布 管理モジュール
 // spray_2.js
+// Version 4.8.0
 // ==========================================
 
 let sprayMaterials = [];
@@ -17,7 +18,7 @@ function showFoliarInput() {
     if (typeof initFoliarFieldButtons === "function") {
         initFoliarFieldButtons();
     }
-    calculateSprayAmounts();
+    
 }
 
 // ========================================
@@ -170,6 +171,7 @@ function calculateSprayAmounts() {
         const mainDilution = Number(mainDilutionSelect.value);
         if (mainMaterialSelect.value !== "" && mainDilution > 0) {
             const mainAmount = tankVolume / mainDilution;
+            mainAmountSpan.dataset.amount = mainAmount;
             if (mainAmount < 0.1) {
                 mainAmountSpan.textContent = `${Math.round(mainAmount * 1000)}ml`;
             } else {
@@ -178,7 +180,7 @@ function calculateSprayAmounts() {
         } else {
             mainAmountSpan.textContent = "";
         }
-        mainAmountSpan.dataset.amount = mainAmount;
+        
     }
 
     sprayMaterials.forEach(item => {

@@ -1,7 +1,7 @@
 // ==========================================
 // Lotus Farm Manager
 // app.js
-// Version 0.9.0
+// Version 4.8.0
 // ==========================================
 
 // ------------------------------------------
@@ -625,9 +625,7 @@ console.log(record);
 
 }
 
-// 履歴画面にて、検索フィルター条件に合致するデータを抽出・集計して描画
 function renderHistoryList() {
-
     const selectedYear =
         document.getElementById("historyYear").value;
 
@@ -647,94 +645,65 @@ function renderHistoryList() {
         document.getElementById("historyList");
 
     if (recordList.length === 0) {
-
         list.innerHTML = "<p>まだ記録がありません。</p>";
-
         return;
-
     }
 
     let html = "";
 
     const filteredRecords = recordList
-
         .slice()
-
         .sort((a, b) => b.date.localeCompare(a.date))
-
         .filter(record => {
-
-            if (selectedYear !== "" &&
-                !record.date.startsWith(selectedYear)) {
-
+            if (selectedYear !== "" && !record.date.startsWith(selectedYear)) {
                 return false;
-
             }
 
-            if (selectedWork !== "" &&
-                record.work !== selectedWork) {
-
+            if (selectedWork !== "" && record.work !== selectedWork) {
                 return false;
-
             }
 
-            if (from !== "" &&
-                record.date < from) {
-
+            if (from !== "" && record.date < from) {
                 return false;
-
             }
 
-            if (to !== "" &&
-                record.date > to) {
-
+            if (to !== "" && record.date > to) {
                 return false;
-
             }
 
             if (selectedField !== "") {
-
                 return record.fields.some(field =>
                     String(field.fieldNo) === String(selectedField)
                 );
-
             }
 
             return true;
-
         });
 
     // ------------------------
-// 履歴集計
-// ------------------------
-const summary =
-    calculateHistorySummary(
-        filteredRecords
+    // 履歴集計
+    // ------------------------
+    const summary = calculateHistorySummary(
+        filteredRecords,
+        selectedField
     );
 
     html += createHistoryListHtml(
-    filteredRecords
-);
+        filteredRecords
+    );
 
     html += createHistorySummaryHtml(
+        filteredRecords,
+        summary.materialSummary,
+        summary.totalN,
+        summary.totalP,
+        summary.totalK,
+        summary.totalCost
+    );
 
-    filteredRecords,
-
-    summary.materialSummary,
-
-    summary.totalN,
-
-    summary.totalP,
-
-    summary.totalK,
-
-    summary.totalCost
-
-);
-
-list.innerHTML = html;
-
+    list.innerHTML = html;
 }
+
 // ------------------------
 // 今日の日付
 // ------------------------
@@ -1272,8 +1241,7 @@ function addPlanMaterial(work = null) {
 // 現在画面上で編集している施肥設計を保存（重複時は上書き、新規は追加）
 function saveFertilizerPlan() {
 
-    const year =
-        document.getElementById("getElementById") ? "" : document.getElementById("planYear").value;
+    const year = document.getElementById("planYear").value;
 
     const field =
         document.getElementById("planField").value;
@@ -1316,128 +1284,86 @@ function saveFertilizerPlan() {
 
 // 施肥設計内の資材・作業グループ要素をデータに基づいて再描画
 function renderPlanMaterials() {
-
-    const div =
-        document.getElementById("planMaterials");
-
+    const div = document.getElementById("planMaterials");
     let html = "";
+    
+    // 現在選択されている田んぼの面積（反）を取得しておく
+    const fieldNo = document.getElementById("planField") ? document.getElementById("planField").value : "";
+    const field = fieldMaster.find(f => String(f.no) === String(fieldNo));
+    const area = field ? Number(field.area) || 0 : 0;
+
     // 現在登録されている作業グループのユニーク一覧
-    const works = [
-        ...new Set(
-            planMaterials.map(m => m.work)
-        )
-    ];
+    const works = [...new Set(planMaterials.map(m => m.work))];
+    
     works.forEach(work => {
-
         html += `
-
-<div class="work-card">
-
-<div class="work-header">
-
-🌱 
-
-<select onchange="changeWorkGroup('${work}', this.value)">
-
-    <option value="">選択してください</option>
-
-    ${workMaster.map(w => `
-        <option
-            value="${w.name}"
-            ${work === w.name ? "selected" : ""}
-        >
-            ${w.name}
-        </option>
-    `).join("")}
-
-</select>
-
-</div>
-`;
+            <div class="work-card">
+            <div class="work-header">
+            🌱 
+            <select onchange="changeWorkGroup('${work}', this.value)">
+                <option value="">選択してください</option>
+                ${workMaster.map(w => `
+                    <option value="${w.name}" ${work === w.name ? "selected" : ""}>
+                        ${w.name}
+                    </option>
+                `).join("")}
+            </select>
+            </div>
+        `;
+        
         planMaterials.forEach((material, index) => {
-
             if (material.work !== work) {
                 return;
             }
-        
+
+            // 現在の数量から10a当たりの量を逆算（初期表示用）
+            const per10aValue = (area > 0 && material.amount) ? (material.amount / area).toFixed(1) : "";
 
             html += `
                 <div>
+                    資材
+                    <select onchange="changePlanMaterial(${index}, this.value)">
+                        <option value="">選択してください</option>
+                        ${materialMaster
+                            .filter(master => {
+                                if (material.work === "") return true;
+                                return master.works.includes(material.work);
+                            })
+                            .map(master => `
+                                <option value="${master.name}" ${material.material === master.name ? "selected" : ""}>
+                                    ${master.name}
+                                </option>
+                            `)
+                            .join("")}
+                    </select>
 
+                    <!-- 🌟 追加: 10a当たりの入力欄 -->
+                    10a当り
+                    <input type="number" step="0.1" style="width: 60px;" value="${per10aValue}" onchange="changePlanPer10a(${index}, this.value)">
 
+                    総数量
+                    <input type="number" step="0.1" style="width: 70px;" value="${material.amount}" onchange="changePlanAmount(${index}, this.value)">
 
-資材
-<select
-    onchange="changePlanMaterial(${index}, this.value)">
+                    ${(() => {
+                        const master = materialMaster.find(m => m.name === material.material);
+                        return master ? master.unit : "";
+                    })()}
 
-    <option value="">選択してください</option>
-
-    ${materialMaster
-        .filter(master => {
-
-            if (material.work === "") {
-                return true;
-            }
-
-            return master.works.includes(material.work);
-
-        })
-        .map(master => `
-            <option
-                value="${master.name}"
-                ${material.material === master.name ? "selected" : ""}
-            >
-                ${master.name}
-            </option>
-        `)
-        .join("")}
-
-</select>
-
-数量
-
-<input
-    type="number"
-    value="${material.amount}"
-    onchange="changePlanAmount(${index}, this.value)">
-
-${(() => {
-
-    const master =
-        materialMaster.find(
-            m => m.name === material.material
-        );
-
-    return master ? master.unit : "";
-
-})()}
-
-<button
-    onclick="deletePlanMaterial(${index})">
-    🗑️
-</button>
-
-</div>
-
-<br>
-                `;
-
+                    <button onclick="deletePlanMaterial(${index})">🗑️</button>
+                </div>
+                <br>
+            `;
         });
 
-    html += `
-<button onclick="addPlanMaterial('${work}')">
-    ＋資材追加
-</button>
-
-<br><br>
-</div>
-`;
-
-});
-div.innerHTML = html;
-
+        html += `
+            <button onclick="addPlanMaterial('${work}')">＋資材追加</button>
+            <br><br>
+            </div>
+        `;
+    });
+    
+    div.innerHTML = html;
     updateFertilizerSummary(); // 成分量やコスト等の合計計算をキック
-
 }
 
 // 個々の計画行における作業グループを変更
@@ -1994,33 +1920,139 @@ ${fieldListHtml}
 
 
 
-        case "herbicide":
+                case "herbicide":
+            // ------------------------
+            // 除草剤入力
+            // ------------------------
+            {
+                let fieldListHtml = "";
+                fieldMaster.forEach(field => {
+                    const selected = selectedFieldIds.includes(String(field.no));
+                    fieldListHtml += `
+                        <button
+                            class="${selected ? "tab active" : "tab"}"
+                            onclick="toggleFieldSelection('${field.no}')">
+                            ${selected ? "☑" : "☐"} ${field.no}　${field.owner}
+                        </button>
+                    `;
+                });
 
-            html = `
-                <div class="card">
+                html = `
+                    <div class="card">
+                        <h3 class="input-header">🌿 除草剤入力</h3>
+                        
+                        <label>作業日</label><br>
+                        <input type="date" id="recordDate" value="${recordDate}" onchange="recordDate = this.value">
+                        <br><br>
 
-                    <h3>🌿 除草剤入力</h3>
+                        <div class="form-group">
+                            <label class="form-group-label">
+                                🌾 田んぼを選択してください（複数選択可）
+                            </label>
+                            <div class="selection-flex-wrap">
+                                ${fieldListHtml}
+                            </div>
+                        </div>
 
-                    <p>作成中</p>
+                        <div class="card">
+                            <label>使用する除草剤</label><br>
+                            <select id="herbicideMaterial" class="form-select-full" onchange="updateHerbicideUnit()">
+                                <option value="">選択してください</option>
+                                ${materialMaster
+                                    .filter(m => m.category === "pesticide" || (m.works && m.works.includes("除草")))
+                                    .map(m => `<option value="${m.name}">${m.name}</option>`).join("")}
+                            </select>
+                            <br><br>
+                            
+                            <label>使用量</label><br>
+                            <div class="form-input-row">
+                                <input type="number" id="herbicideAmount" step="0.1" class="form-input-amount">
+                                <span id="herbicideUnit"></span>
+                            </div>
+                        </div>
 
-                </div>
-            `;
-
+                        <div class="card">
+                            <button class="btn-save-green" onclick="saveHerbicideRecord()">
+                                💾 除草剤の記録を保存
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
             break;
 
         case "other":
+            // ------------------------
+            // その他入力
+            // ------------------------
+            {
+                let fieldListHtml = "";
+                fieldMaster.forEach(field => {
+                    const selected = selectedFieldIds.includes(String(field.no));
+                    fieldListHtml += `
+                        <button
+                            class="${selected ? "tab active" : "tab"}"
+                            onclick="toggleFieldSelection('${field.no}')">
+                            ${selected ? "☑" : "☐"} ${field.no}　${field.owner}
+                        </button>
+                    `;
+                });
 
-            html = `
-                <div class="card">
+                html = `
+                    <div class="card">
+                        <h3 class="input-header">📦 その他作業入力</h3>
+                        
+                        <label>作業日</label><br>
+                        <input type="date" id="recordDate" value="${recordDate}" onchange="recordDate = this.value">
+                        <br><br>
 
-                    <h3>📦 その他入力</h3>
+                        <div class="form-group">
+                            <label class="form-group-label">
+                                🌾 田んぼを選択してください（複数選択可）
+                            </label>
+                            <div class="selection-flex-wrap">
+                                ${fieldListHtml}
+                            </div>
+                        </div>
 
-                    <p>作成中</p>
+                        <div class="card">
+                            <label>作業内容</label><br>
+                            <select id="otherWorkSelect" class="form-select-full">
+                                <option value="">選択してください</option>
+                                ${workMaster
+                                    .filter(w => w.category === "other" || (w.name !== "元肥" && !w.name.startsWith("追肥") && w.name !== "葉面散布" && w.name !== "除草"))
+                                    .map(w => `<option value="${w.name}">${w.name}</option>`).join("")}
+                            </select>
+                            <br><br>
 
-                </div>
-            `;
+                            <label>使用資材 (任意)</label><br>
+                            <select id="otherMaterial" class="form-select-full" onchange="updateOtherMaterialUnit()">
+                                <option value="">使用なし</option>
+                                ${materialMaster.map(m => `<option value="${m.name}">${m.name}</option>`).join("")}
+                            </select>
+                            <br><br>
 
+                            <label>使用量</label><br>
+                            <div class="form-input-row">
+                                <input type="number" id="otherAmount" step="0.1" class="form-input-amount">
+                                <span id="otherMaterialUnit"></span>
+                            </div>
+                            <br>
+
+                            <label>備考・メモ</label><br>
+                            <textarea id="otherMemo" class="form-textarea"></textarea>
+                        </div>
+
+                        <div class="card">
+                            <button class="btn-save-green" onclick="saveOtherRecord()">
+                                💾 その他作業の記録を保存
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
             break;
+
 
     }
 
@@ -2932,33 +2964,15 @@ function renderHistoryRecord(record, originalIndex) {
 // 履歴詳細HTML生成
 // ------------------------
 function createHistoryDetailHtml(record) {
-
-    const firstMaterial =
-        record.fields[0]?.materials[0];
-
-    if (!firstMaterial) {
-        return "";
-    }
-
-    const master =
-        materialMaster.find(
-            m => m.name === firstMaterial.material
-        );
-console.log(firstMaterial.material);
-console.log(master);
-console.log(master?.category);
-console.log(
-materialMaster.find(m => m.name === "ペンタキープ")
-);
-    if (master?.category === "spray") {
-
+    // 作業内容が「葉面散布」または「除草」の場合は、すっきりした専用レイアウトで表示する
+    if (record.work === "葉面散布" || record.work === "除草") {
         return createSprayDetailHtml(record);
-
     }
 
+    // それ以外の通常の肥料などは従来の表示
     return createNormalDetailHtml(record);
-
 }
+
 // ------------------------
 // 履歴カードHTML生成
 // ------------------------
@@ -3144,78 +3158,87 @@ console.log(materialSummary);
 
 }
 
-// ------------------------
-// 履歴集計
-// ------------------------
-function calculateHistorySummary(records) {
-
-    const materialSummary = {};
-
+/**
+ * フィルターされたレコードから、指定された田んぼの分だけを正確に集計する
+ * @param {Array} filteredRecords - 絞り込まれた履歴データの配列
+ * @param {String|Number} selectedFieldNo - 検索画面で選択されている田んぼ番号（「すべて」の場合は空文字やnull）
+ * @returns {Object} 集計結果オブジェクト
+ */
+function calculateHistorySummary(filteredRecords, selectedFieldNo = "") {
+    const materialSummary = {}; 
     let totalN = 0;
     let totalP = 0;
     let totalK = 0;
     let totalCost = 0;
 
-    records.forEach(record => {
+    // 検索条件の田んぼ番号を文字列に統一（型違いによる不一致を防ぐ）
+    const targetFieldNo = selectedFieldNo ? String(selectedFieldNo).trim() : "";
 
+    // 1. 各レコードをループ
+    filteredRecords.forEach(record => {
+        if (!record.fields || !Array.isArray(record.fields)) return;
+
+        // 2. レコード内の各田んぼをループ
         record.fields.forEach(field => {
+            
+            // 【重要】田んぼの絞り込み条件がある場合、一致しない田んぼのデータはスキップする
+            if (targetFieldNo !== "") {
+                const currentFieldNo = field.fieldNo ? String(field.fieldNo).trim() : "";
+                if (currentFieldNo !== targetFieldNo) {
+                    return; // この田んぼの資材は集計に入れない
+                }
+            }
 
-            field.materials.forEach(material => {
+            if (!field.materials || !Array.isArray(field.materials)) return;
 
-                const master =
-                    materialMaster.find(
-                        m => m.name === material.material
-                    );
+            // 3. 各資材をループ
+            field.materials.forEach(mat => {
+                const name = mat.material;
+                if (!name || name === "選択してください") return;
 
-               const amount = Number(material.amount);
+                // 数量の取得
+                const amount = parseFloat(mat.amount) || parseFloat(mat.bags) || 0; 
+                if (amount === 0) return;
 
-console.log(material);
-console.log(material.amount);
-console.log(amount); 
+                // 資材マスタ (materialMaster) から最新情報を取得
+                const master = materialMaster.find(m => m.name === name);
+                const price = master ? parseFloat(master.price) || 0 : 0;
+                const weight = master ? parseFloat(master.weight) || 0 : 0;
+                const unit = master ? master.unit : (mat.unit || "袋");
 
-                if (master && master.category === "fertilizer") {
+                // コスト計算
+                const cost = amount * price;
 
-    totalN +=
-        amount * master.weight * master.n / 100;
+                // 資材別の数量・金額・単位を集計
+                if (!materialSummary[name]) {
+                    materialSummary[name] = { amount: 0, cost: 0, unit: unit };
+                }
+                materialSummary[name].amount += amount;
+                materialSummary[name].cost += cost;
 
-    totalP +=
-        amount * master.weight * master.p / 100;
+                // 総コストに加算
+                totalCost += cost;
 
-    totalK +=
-        amount * master.weight * master.k / 100;
-
-    totalCost +=
-        amount * master.price;
-
-}
-
-                if (!materialSummary[material.material]) {
-
-    materialSummary[material.material] = {
-        amount: 0,
-        unit: master ? master.unit : material.unit
-    };
-
-}
-
-materialSummary[material.material].amount += amount;
+                // 三要素（N・P・K）の計算
+                if (master) {
+                    const totalKg = amount * weight;
+                    totalN += totalKg * (parseFloat(master.n) || 0) / 100;
+                    totalP += totalKg * (parseFloat(master.p) || 0) / 100;
+                    totalK += totalKg * (parseFloat(master.k) || 0) / 100;
+                }
             });
-
         });
-
     });
 
     return {
-
-        materialSummary,
-        totalN,
-        totalP,
-        totalK,
-        totalCost
-
+        materialSummary: materialSummary,
+        totalN: totalN,
+        totalP: totalP,
+        totalK: totalK,
+        totalCost: totalCost
     };
-
 }
+
 
 function addSprayMaterial() {
 
@@ -3241,95 +3264,7 @@ function addSprayMaterial() {
 /**
  * 葉面散布の入力内容をローカルストレージに保存する
  */
-/**
- * 葉面散布の入力内容をアプリ共通のrecordListへ一括保存する
- */
-function saveFoliarRecord() {
-    // 1. 田んぼの選択チェック（タップで選択されたselectedFieldIdsを使用）
-    if (selectedFieldIds.length === 0) {
-        alert("散布する田んぼを少なくとも1つ選択してください。");
-        return;
-    }
 
-    // 2. タンク容量の取得（HTMLの id="foliarTank" から取得）
-    const tankSelect = document.getElementById("foliarTank");
-    const tankSize = tankSelect ? tankSelect.value + "L" : "未設定";
-
-    const materials = [];
-
-    // 3. メイン入力欄（現在選択されている資材）の取得
-    const mainMaterialSelect = document.getElementById("sprayMaterial");
-    const mainAmountSpan = document.getElementById("mainSprayAmount");
-
-    if (mainMaterialSelect && mainMaterialSelect.value !== "") {
-        const matIndex = Number(mainMaterialSelect.value);
-        const matMaster = materialMaster[matIndex];
-        if (matMaster) {
-            materials.push({
-                material: matMaster.name,
-                amount: mainAmountSpan ? mainAmountSpan.textContent.trim() : ""
-            });
-        }
-    }
-
-    // 4. 動的に追加されたリスト（もし sprayMaterials 配列があれば）の取得
-    if (typeof sprayMaterials !== "undefined" && sprayMaterials.length > 0) {
-        sprayMaterials.forEach(item => {
-            const matMaster = materialMaster[item.materialIndex];
-            if (matMaster) {
-                materials.push({
-                    material: matMaster.name,
-                    amount: item.amount ? item.amount + (matMaster.unit || "L") : ""
-                });
-            }
-        });
-    }
-
-    if (materials.length === 0) {
-        alert("資材を1つ以上選択・追加してください。");
-        return;
-    }
-
-    // 5. アプリ共通の recordList 構造（元肥・追肥と同じ）に合わせてオブジェクトを作成
-    const record = {
-        date: recordDate || getToday(),
-        work: "葉面散布",
-        memo: `タンク容量: ${tankSize}`,
-        fields: []
-    };
-
-    // 選択されたすべての田んぼを fields 配列に格納
-    selectedFieldIds.forEach(fieldNo => {
-        record.fields.push({
-            fieldNo: Number(fieldNo),
-            materials: materials.map(m => ({
-                material: m.material,
-                amount: m.amount
-            }))
-        });
-    });
-
-    // 6. アプリ共通の配列へ追加し、共通の永続化関数を実行
-    recordList.push(record);
-    if (typeof saveRecordList === "function") {
-        saveRecordList();
-    }
-
-    alert("葉面散布の記録を保存しました！");
-
-    // 7. 状態のクリアと画面遷移
-    selectedFieldIds = [];
-    if (typeof sprayMaterials !== "undefined") {
-        sprayMaterials = [];
-    }
-    
-    // 履歴画面を表示して保存結果を確認
-    if (typeof showHistory === "function") {
-        showHistory();
-    } else {
-        showInput();
-    }
-}
 /**
  * 葉面散布画面用の田んぼ選択ボタンを動的に生成する
  */
@@ -3468,7 +3403,8 @@ function saveFoliarRecord() {
         }))
     });
 });
-
+console.log(materials);
+console.log(record);
     // 5. グローバル配列へ追加し、既存の永続化関数を実行
     recordList.push(record);
     if (typeof saveRecordList === "function") {
@@ -3577,7 +3513,7 @@ function saveFoliarRecord() {
         if (matMaster) {
             materials.push({
                 material: matMaster.name,
-                amount: parseFloat(mainAmountSpan.textContent)   // ←変更
+                amount: parseFloat(mainAmountSpan.dataset.amount)
             });
         }
     }
@@ -3639,113 +3575,99 @@ function saveFoliarRecord() {
 }
 
 function createNormalDetailHtml(record) {
+    // 現在履歴検索で選択されている田んぼのNoを取得
+    const selectedField = document.getElementById("historyField") ? document.getElementById("historyField").value : "";
 
     return record.fields
-
+        // 🔍 もし田んぼが選択されていたら、その田んぼのデータだけに絞り込む
+        .filter(field => {
+            if (selectedField !== "") {
+                return String(field.fieldNo) === String(selectedField);
+            }
+            return true;
+        })
         .map(field => {
+            const fieldInfo = fieldMaster.find(
+                f => String(f.no) === String(field.fieldNo)
+            );
 
-            const fieldInfo =
-                fieldMaster.find(
-                    f => String(f.no) === String(field.fieldNo)
-                );
-
-            const fieldName =
-                fieldInfo
-                    ? `No.${fieldInfo.no}　${fieldInfo.owner}`
-                    : `No.${field.fieldNo}`;
+            const fieldName = fieldInfo
+                ? `No.${fieldInfo.no}　${fieldInfo.owner}`
+                : `No.${field.fieldNo}`;
 
             const materials = field.materials
-
                 .map(material => {
-
-                    const master =
-                        materialMaster.find(
-                            m => m.name === material.material
-                        );
-
-                    const unit =
-                        master ? master.unit : "";
-
-                    return `
-                        ${material.material}
-                        ${material.amount}${unit}
-                    `;
-
+                    const master = materialMaster.find(
+                        m => m.name === material.material
+                    );
+                    const unit = master ? master.unit : "";
+                    return `${material.material} ${material.amount}${unit}`;
                 })
-
                 .join("<br>");
 
             return `
                 <div class="history-field">
-
                     <b>${fieldName}</b><br>
-
                     ${materials}
-
                 </div>
             `;
-
         })
-
         .join("<hr>");
-
 }
 
 // ------------------------
-// 葉面散布履歴詳細HTML生成
+// 葉面散布・除草 履歴詳細HTML生成
 // ------------------------
 function createSprayDetailHtml(record) {
+    // 現在履歴検索で選択されている田んぼのNoを取得
+    const selectedField = document.getElementById("historyField") ? document.getElementById("historyField").value : "";
+
+    // 🔍 選択された田んぼがある場合は、その田んぼに紐づくデータだけにする
+    const targetFields = record.fields.filter(field => {
+        if (selectedField !== "") {
+            return String(field.fieldNo) === String(selectedField);
+        }
+        return true;
+    });
 
     const materials = [];
 
-    record.fields.forEach(field => {
-
+    targetFields.forEach(field => {
         field.materials.forEach(material => {
-
             const master = materialMaster.find(
                 m => m.name === material.material
             );
-
             const unit = master ? master.unit : "";
 
             if (!materials.some(m => m.name === material.material)) {
-
                 materials.push({
-    name: material.material,
-    amount: material.amount,
-    unit: material.unit || unit
-});
-
+                    name: material.material,
+                    amount: material.amount,
+                    unit: material.unit || unit
+                });
             }
-
         });
-
     });
-console.log(materials);
+
     const materialHtml = materials.map(m => {
+        let amount = Number(m.amount);
+        let unit = m.unit;
 
-    let amount = Number(m.amount);
-    let unit = m.unit;
+        if (unit === "L" && amount < 1) {
+            amount *= 1000;
+            unit = "mL";
+        }
 
-    if (unit === "L" && amount < 1) {
-        amount *= 1000;
-        unit = "mL";
-    }
+        return `${m.name}　${amount}${unit}`;
+    }).join("<br>");
 
-    return `${m.name}　${amount}${unit}`;
-
-}).join("<br>");
-console.log(materialHtml);
-    const fieldHtml = record.fields.map(field => {
-
+    const fieldHtml = targetFields.map(field => {
         const fieldInfo = fieldMaster.find(
             f => String(f.no) === String(field.fieldNo)
         );
-
         return fieldInfo
             ? `No.${fieldInfo.no}　${fieldInfo.owner}`
             : `No.${field.fieldNo}`;
-
     }).join("<br>");
 
     return `
@@ -3757,5 +3679,136 @@ console.log(materialHtml);
         <b>対象田んぼ</b><br>
         ${fieldHtml}
     `;
-console.log(materialHtml);
+}
+
+
+
+function saveHerbicideRecord() {
+    // グローバル変数 recordDate や、選択された田んぼIDの配列 selectedFieldIds を使用
+    const date = recordDate || document.getElementById("recordDate").value;
+    const material = document.getElementById("herbicideMaterial").value;
+    const amount = parseFloat(document.getElementById("herbicideAmount").value) || 0;
+
+    if (!selectedFieldIds || selectedFieldIds.length === 0) {
+        alert("田んぼを少なくとも1つ選択してください。");
+        return;
+    }
+
+    if (!material) {
+        alert("使用する除草剤を選択してください。");
+        return;
+    }
+
+    if (amount <= 0) {
+        alert("使用量を入力してください。");
+        return;
+    }
+
+    // 選択された田んぼごとに資材と数量を格納
+    const fieldsData = selectedFieldIds.map(fieldNo => {
+        return {
+            fieldNo: fieldNo,
+            materials: [{ material, amount }]
+        };
+    });
+
+    const record = {
+        date: date,
+        work: "除草", // 履歴で「除草」として識別
+        memo: "",     // 除草剤入力はメモ欄がないため空文字
+        fields: fieldsData
+    };
+
+    // 【修正箇所】：LocalStorage に正しく保存
+    recordList.push(record);
+    saveRecordList(); // storage.js の保存関数を実行
+
+    alert("除草剤の記録を保存しました。");
+    showHistory(); // 履歴画面へ遷移
+}
+
+function saveOtherRecord() {
+    const date = recordDate || document.getElementById("recordDate").value;
+    const workType = document.getElementById("otherWorkSelect").value;
+    const material = document.getElementById("otherMaterial").value;
+    const amount = parseFloat(document.getElementById("otherAmount").value) || 0;
+    const memo = document.getElementById("otherMemo").value || "";
+
+    if (!selectedFieldIds || selectedFieldIds.length === 0) {
+        alert("田んぼを少なくとも1つ選択してください。");
+        return;
+    }
+
+    if (!workType) {
+        alert("作業内容を選択してください。");
+        return;
+    }
+
+    // 資材が選択されている場合のみ materials 配列を作成
+    const materials = [];
+    if (material && amount > 0) {
+        materials.push({ material, amount });
+    }
+
+    const fieldsData = selectedFieldIds.map(fieldNo => {
+        return {
+            fieldNo: fieldNo,
+            materials: materials // 資材なしの場合は空配列
+        };
+    });
+
+    const record = {
+        date: date,
+        work: workType, // 選択した「作業内容（草刈りや耕起など）」が入る
+        memo: memo,
+        fields: fieldsData
+    };
+
+    // 【修正箇所】：LocalStorage に正しく保存
+    recordList.push(record);
+    saveRecordList(); // storage.js の保存関数を実行
+
+    alert("その他作業の記録を保存しました。");
+    showHistory(); // 履歴画面へ遷移
+}
+
+
+// 除草剤の単位表示を切り替える
+function updateHerbicideUnit() {
+    const materialName = document.getElementById("herbicideMaterial").value;
+    const unitSpan = document.getElementById("herbicideUnit");
+    if (!unitSpan) return;
+
+    const item = materialMaster.find(m => m.name === materialName);
+    unitSpan.innerText = item ? item.unit : "";
+}
+
+// その他作業の資材単位表示を切り替える
+function updateOtherMaterialUnit() {
+    const materialName = document.getElementById("otherMaterial").value;
+    const unitSpan = document.getElementById("otherMaterialUnit");
+    if (!unitSpan) return;
+
+    const item = materialMaster.find(m => m.name === materialName);
+    unitSpan.innerText = item ? item.unit : "";
+}
+
+
+// 10a当たりの量から全体の数量を自動計算する関数（四捨五入で整数化）
+function changePlanPer10a(index, per10aValue) {
+    const fieldNo = document.getElementById("planField").value;
+    const field = fieldMaster.find(f => String(f.no) === String(fieldNo));
+    const area = field ? Number(field.area) || 0 : 0;
+
+    if (area > 0) {
+        // 10a当たりの量 × 面積(反)
+        const totalAmount = Number(per10aValue) * area;
+        
+        // 四捨五入して整数にする
+        planMaterials[index].amount = Math.round(totalAmount); 
+    } else {
+        alert("田んぼマスタの面積が正しく登録されていません。");
+    }
+
+    renderPlanMaterials();
 }
