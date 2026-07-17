@@ -88,6 +88,11 @@ function saveRecordList() {
         JSON.stringify(recordList)
     );
 
+    localStorage.setItem(
+        "shipmentRecords",
+        JSON.stringify(shipmentRecords)
+    );
+
 }
 
 // ------------------------
@@ -96,12 +101,22 @@ function saveRecordList() {
 // ローカルストレージから全作業記録データを復元ロード
 function loadRecordList() {
 
-    const data = localStorage.getItem("recordList");
+    const recordData =
+        localStorage.getItem("recordList");
 
-    if (data) {
-        recordList = JSON.parse(data);
+    if (recordData) {
+        recordList = JSON.parse(recordData);
     } else {
         recordList = [];
+    }
+
+    const shipmentData =
+        localStorage.getItem("shipmentRecords");
+
+    if (shipmentData) {
+        shipmentRecords = JSON.parse(shipmentData);
+    } else {
+        shipmentRecords = [];
     }
 
 }
@@ -116,13 +131,16 @@ function loadRecordList() {
 function exportBackup() {
 
     const backupData = {
-    fieldMaster,
-    workMaster,
-    materialMaster,
-    templateMaster,
-    fertilizerPlanList,
-    recordList
-};
+
+        fieldMaster,
+        workMaster,
+        materialMaster,
+        templateMaster,
+        fertilizerPlanList,
+        recordList,
+        shipmentRecords
+
+    };
 
     const json = JSON.stringify(backupData, null, 2);
 
@@ -132,7 +150,6 @@ function exportBackup() {
 
     const url = URL.createObjectURL(blob);
 
-    // 仮想のダウンロード用リンクを動的生成してクリック処理
     const a = document.createElement("a");
     a.href = url;
     a.download = "LotusFarmManager_Save.json";
@@ -140,6 +157,7 @@ function exportBackup() {
 
     URL.revokeObjectURL(url);
 
+    
 }
 
 // ユーザーが選択したJSONのバックアップファイルを解析し、データをアプリ内にインポート復元
@@ -170,6 +188,7 @@ function importBackup() {
             recordList = backupData.recordList || [];
             fertilizerPlanList = backupData.fertilizerPlanList || [];
 　　　templateMaster = backupData.templateMaster || [];
+　　　shipmentRecords = backupData.shipmentRecords || [];
             // すべての内部データをストレージへ即時反映
             saveFieldMaster();
             saveWorkMaster();
@@ -177,9 +196,11 @@ function importBackup() {
             saveRecordList();
             saveFertilizerPlanList();
             saveTemplateMaster();
+            window.editShipmentIndex = null;
+shipmentItems = [];
             alert("復元しました。");
 
-            showRecord(); // 画面を再描画
+            showMenu();
 
         };
 
@@ -195,19 +216,24 @@ function importBackup() {
 function exportBackupHistory() {
 
     const backupData = {
-    fieldMaster,
-    workMaster,
-    materialMaster,
-    templateMaster,
-    fertilizerPlanList,
-    recordList
-};
+
+        fieldMaster,
+        workMaster,
+        materialMaster,
+        templateMaster,
+        fertilizerPlanList,
+        recordList,
+        shipmentRecords
+
+    };
 
     const json =
         JSON.stringify(backupData, null, 2);
 
     const blob =
-        new Blob([json], { type: "application/json" });
+        new Blob([json], {
+            type: "application/json"
+        });
 
     const url =
         URL.createObjectURL(blob);
@@ -215,7 +241,6 @@ function exportBackupHistory() {
     const a =
         document.createElement("a");
 
-    // ファイル名に組み込む現在日時のフォーマット生成
     const now = new Date();
 
     const yyyy = now.getFullYear();
@@ -234,7 +259,6 @@ function exportBackupHistory() {
 
     a.href = url;
 
-    // YYYYMMDD_HHMI 形式の接尾辞を持たせてダウンロード
     a.download =
         `LotusFarmManager_${yyyy}${mm}${dd}_${hh}${mi}.json`;
 
@@ -243,7 +267,6 @@ function exportBackupHistory() {
     URL.revokeObjectURL(url);
 
 }
-
 // ==========================================
 // 施肥設計
 // ==========================================

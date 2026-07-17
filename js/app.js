@@ -19,7 +19,7 @@ let recordDate = getToday();
 // ------------------------
 
 // 現在選択中の入力タブ
-let inputTab = "fertilizer";
+let inputTab = "shipment";
 // 肥料入力モード（元肥・追肥）
 let fertilizerMode = "base";
 // ----------------------
@@ -46,7 +46,7 @@ let editFields = [];
 // ------------------------
 let selectedTopWork = "追肥①";
 
-
+let historyTab = "shipment";
 // ------------------------
 // 作業記録
 // ------------------------
@@ -141,101 +141,141 @@ function showRecord() {
 // 履歴
 // -----------------------
 // 作業履歴画面の生成と表示
+// 作業・出荷履歴画面
 function showHistory() {
+
+    let historyHtml = "";
+
+    if (historyTab === "shipment") {
+
+        historyHtml = getShipmentHistoryHtml();
+
+    } else {
+
+        historyHtml = `
+
+            <div class="search-box">
+
+                <h3>🔍 検索条件</h3>
+
+                <br>
+
+                <label>年</label>
+
+                <select id="historyYear">
+                    <option value="">全て</option>
+                </select>
+
+                <label>田んぼ</label>
+
+                <select id="historyField">
+                    <option value="">全て</option>
+                </select>
+
+                <label>作業</label>
+
+                <select id="historyWork">
+                    <option value="">全て</option>
+                </select>
+
+                <label>開始日</label>
+
+                <input type="date" id="historyFrom">
+
+                <br><br>
+
+                <label>終了日</label>
+
+                <input type="date" id="historyTo">
+
+                <button id="btnClearHistorySearch">
+                    🧹 検索条件クリア
+                </button>
+
+            </div>
+
+            <hr>
+
+            <h3>📋 検索結果</h3>
+
+            <div id="historyList">
+                <p>まだ記録がありません。</p>
+            </div>
+
+        `;
+
+    }
 
     app.innerHTML = `
 
-        <h2>📋 作業履歴</h2>
-        <div class="search-box">
+        <h2>📋 履歴</h2>
 
-<h3>🔍 検索条件</h3>
+        <div class="tab-container">
 
-<br>
-<label>年</label>
+            <button
+                class="${historyTab === "shipment" ? "tab active" : "tab"}"
+                onclick="changeHistoryTab('shipment')">
 
-<select id="historyYear">
-    <option value="">全て</option>
-</select>
-        <label>田んぼ</label>
-        
+                📦 出荷
 
-<select id="historyField">
-    <option value="">全て</option>
-</select>
-<label>作業</label>
+            </button>
 
-<select id="historyWork">
-    <option value="">全て</option>
-</select>
-<label>開始日</label>
+            <button
+                class="${historyTab === "work" ? "tab active" : "tab"}"
+                onclick="changeHistoryTab('work')">
 
-<input type="date" id="historyFrom">
+                🌱 作業
 
-<br><br>
+            </button>
 
-<label>終了日</label>
-
-<input type="date" id="historyTo">
-<button id="btnClearHistorySearch">
-    🧹 検索条件クリア
-</button>
-
-</div>
-
-<hr>
-
-<h3>📋 検索結果</h3>
-
-<div id="historyList">
-
-<br><br>
-
-<br><br>
-<br><br>
-<br><br>
-
-
-        <div id="historyList">
-            <p>まだ記録がありません。</p>
         </div>
 
+        ${historyHtml}
+
     `;
-    // 履歴検索用プルダウンの生成
-    renderHistoryFieldOptions();
-    renderHistoryWorkOptions();
-    renderHistoryYearOptions();
 
-    // 履歴一覧の初回描画
-    renderHistoryList();
-    // 検索条件変更時の自動再描画イベント設定
-    document
-    .getElementById("historyWork")
-    .addEventListener("change", renderHistoryList);   
-    document
-    .getElementById("historyField")
-    .addEventListener("change", renderHistoryList);
-    document
-    .getElementById("historyFrom")
-    .addEventListener("change", renderHistoryList);
+    // 作業履歴だけ検索イベントを設定
+    if (historyTab === "work") {
 
-    document
-    .getElementById("historyTo")
-    .addEventListener("change", renderHistoryList);
-    // 検索条件クリアボタンのイベント設定
-    document
-    .getElementById("btnClearHistorySearch")
-    .addEventListener("click", clearHistorySearch);
-    document
-    .getElementById("historyYear")
-    .addEventListener("change", renderHistoryList);
+        renderHistoryFieldOptions();
+        renderHistoryWorkOptions();
+        renderHistoryYearOptions();
+
+        renderHistoryList();
+
+        document
+            .getElementById("historyWork")
+            .addEventListener("change", renderHistoryList);
+
+        document
+            .getElementById("historyField")
+            .addEventListener("change", renderHistoryList);
+
+        document
+            .getElementById("historyFrom")
+            .addEventListener("change", renderHistoryList);
+
+        document
+            .getElementById("historyTo")
+            .addEventListener("change", renderHistoryList);
+
+        document
+            .getElementById("historyYear")
+            .addEventListener("change", renderHistoryList);
+
+        document
+            .getElementById("btnClearHistorySearch")
+            .addEventListener("click", clearHistorySearch);
+
+    }
+
 }
-
 // ------------------------
 // 設定
 // ------------------------
 // 設定画面の生成と表示
 function showSettings() {
-
+console.log("showSettings");
     app.innerHTML = `
         <h2>⚙️ 設定</h2>
 
@@ -1564,7 +1604,9 @@ ${name}
     let html = "";
 
     switch (inputTab) {
-
+case "shipment":
+    html = getShipmentHtml();
+    break;
         case "fertilizer":
 
             // 元肥・追肥タブ
@@ -2066,7 +2108,13 @@ ${fieldListHtml}
             </div>
 
             <div class="tab-container">
+<button
+    class="${inputTab === "shipment" ? "tab active" : "tab"}"
+    onclick="changeInputTab('shipment')">
 
+    📦 出荷
+
+</button>
                 <button
                     class="${inputTab === "fertilizer" ? "tab active" : "tab"}"
                     onclick="changeInputTab('fertilizer')">
@@ -2105,6 +2153,15 @@ ${fieldListHtml}
 
         </div>
     `;
+    if (inputTab === "shipment") {
+
+    setTimeout(() => {
+
+        renderShipmentItems();
+
+    }, 0);
+
+}
 
        // app.js の showInput() 末尾
     if (inputTab === "spray") {
@@ -2131,7 +2188,13 @@ function changeInputTab(tab) {
 
     inputTab = tab;
 
-    // 入力画面を再表示
+    if (tab === "shipment") {
+
+        shipmentItems = [];
+        window.editShipmentIndex = null;
+
+    }
+
     showInput();
 
 }
@@ -3811,4 +3874,11 @@ function changePlanPer10a(index, per10aValue) {
     }
 
     renderPlanMaterials();
+}
+function changeHistoryTab(tab) {
+
+    historyTab = tab;
+
+    showHistory();
+
 }
