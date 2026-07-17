@@ -70,10 +70,14 @@ function getShipmentHtml() {
 
         <label>出荷先</label><br>
 
-        <input
-            id="shipmentDestination"
-            type="text">
+<select id="shipmentDestination">
 
+    <option value="JA">JA</option>
+    <option value="直売所">直売所</option>
+    <option value="市場">市場</option>
+    <option value="その他">その他</option>
+
+</select>
         <br><br>
 
         <label>重量</label><br>
@@ -310,7 +314,7 @@ function saveShipmentRecord() {
     }
 
     const destination =
-        document.getElementById("shipmentDestination").value.trim();
+    document.getElementById("shipmentDestination").value;
 
     if (destination === "") {
 
