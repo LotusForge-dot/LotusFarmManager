@@ -268,7 +268,38 @@ function showHistory() {
             .addEventListener("click", clearHistorySearch);
 
     }
+if (historyTab === "shipment") {
 
+    renderShipmentHistoryFieldOptions();
+    renderShipmentHistoryYearOptions();
+
+    renderShipmentHistory();
+
+    document
+        .getElementById("shipmentHistoryYear")
+        .addEventListener("change", renderShipmentHistory);
+
+    document
+        .getElementById("shipmentHistoryField")
+        .addEventListener("change", renderShipmentHistory);
+
+    document
+        .getElementById("shipmentHistoryDestination")
+        .addEventListener("change", renderShipmentHistory);
+
+    document
+        .getElementById("shipmentHistoryFrom")
+        .addEventListener("change", renderShipmentHistory);
+
+    document
+        .getElementById("shipmentHistoryTo")
+        .addEventListener("change", renderShipmentHistory);
+
+    document
+        .getElementById("btnClearShipmentHistorySearch")
+        .addEventListener("click", clearShipmentHistorySearch);
+renderShipmentHistoryDestinationOptions();
+}
 }
 // ------------------------
 // 設定

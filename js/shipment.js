@@ -374,98 +374,65 @@ showInput();
 }
 function getShipmentHistoryHtml() {
 
-    let html = "";
+    return `
 
-    if (!shipmentRecords || shipmentRecords.length === 0) {
+        <div class="search-box">
 
-        html += `
+            <h3>🔍 検索条件</h3>
 
-            <div class="card">
+            <br>
 
-                出荷履歴はありません。
+            <label>年</label>
 
-            </div>
+            <select id="shipmentHistoryYear">
+                <option value="">全て</option>
+            </select>
 
-        `;
+            <label>田んぼ</label>
 
-    } else {
+            <select id="shipmentHistoryField">
+                <option value="">全て</option>
+            </select>
 
-        shipmentRecords
-            .slice()
-            .reverse()
-            .forEach((record, index) => {
+            <label>出荷先</label>
 
-                html += `
+            <select id="shipmentHistoryDestination">
+                <option value="">全て</option>
+            </select>
 
-                    <div class="card">
+            <label>開始日</label>
 
-                        <b>${record.date}</b>
+            <input type="date" id="shipmentHistoryFrom">
 
-                        <br>
+            <br><br>
 
-                        田んぼ：No.${record.fieldNo}
+            <label>終了日</label>
 
-                        <br>
+            <input type="date" id="shipmentHistoryTo">
 
-                        出荷先：${record.destination}
+            <button id="btnClearShipmentHistorySearch">
+                🧹 検索条件クリア
+            </button>
 
-                        <br><br>
+        </div>
 
-                        <b>${record.weight}</b>
-                        　
-                        <b>${record.package}</b>
+        <hr>
 
-                        <hr>
+        <h3>📊 集計</h3>
 
-                `;
+        <div id="shipmentSummary">
 
-                record.items.forEach(item => {
+        </div>
 
-                    html += `
+        <hr>
 
-                        <div style="
-                            display:flex;
-                            justify-content:space-between;
-                            margin-bottom:6px;
-                        ">
+        <h3>📋 検索結果</h3>
 
-                            <span>${item.grade}</span>
+        <div id="shipmentHistoryList">
 
-                            <span>${item.quantity}${record.weight === "袋" ? "袋" : "箱"}</span>
+        </div>
 
-                        </div>
-
-                    `;
-
-                });
-
-                html += `
-
-                        <hr>
-
-                        <button
-                            onclick="editShipmentRecord(${shipmentRecords.length - 1 - index})">
-
-                            編集
-
-                        </button>
-
-                        <button
-                            onclick="deleteShipmentRecord(${shipmentRecords.length - 1 - index})">
-
-                            削除
-
-                        </button>
-
-                    </div>
-
-                `;
-
-            });
-
-    }
-
-    return html;
+    `;
 
 }
 function editShipmentRecord(index) {
@@ -509,4 +476,373 @@ function deleteShipmentRecord(index) {
     showShipmentHistory();
 
 }
+function renderShipmentHistory() {
 
+    const list =
+        document.getElementById("shipmentHistoryList");
+
+    let records = [...shipmentRecords];
+
+    // 年
+    const year =
+        document.getElementById("shipmentHistoryYear").value;
+
+    if (year !== "") {
+
+        records = records.filter(record =>
+            record.date.startsWith(year)
+        );
+
+    }
+
+    // 田んぼ
+    const field =
+        document.getElementById("shipmentHistoryField").value;
+
+    if (field !== "") {
+
+        records = records.filter(record =>
+            String(record.fieldNo) === field
+        );
+
+    }
+
+    // 出荷先
+    const destination =
+        document.getElementById("shipmentHistoryDestination").value;
+
+    if (destination !== "") {
+
+        records = records.filter(record =>
+            record.destination === destination
+        );
+
+    }
+
+    // 開始日
+    const from =
+        document.getElementById("shipmentHistoryFrom").value;
+
+    if (from !== "") {
+
+        records = records.filter(record =>
+            record.date >= from
+        );
+
+    }
+
+    // 終了日
+    const to =
+        document.getElementById("shipmentHistoryTo").value;
+
+    if (to !== "") {
+
+        records = records.filter(record =>
+            record.date <= to
+        );
+        }
+    if (records.length === 0) {
+
+        list.innerHTML = `
+            <div class="card">
+                出荷履歴はありません。
+            </div>
+        `;
+
+        return;
+
+    }
+
+    let html = "";
+
+    records
+        .slice()
+        .reverse()
+        .forEach((record) => {
+const totalBoxes =
+    record.items.reduce(
+        (sum, item) => sum + Number(item.quantity),
+        0
+    );
+    
+            html += `
+
+                <div class="card">
+
+                    <b>${record.date}</b>
+
+                    <br>
+
+                    田んぼ：No.${record.fieldNo}
+
+                    <br>
+
+                    出荷先：${record.destination}
+
+                    <br><br>
+
+                    <b>${record.weight}</b>
+　
+<b>${record.package}</b>
+
+<br>
+
+<b>合計：${totalBoxes}${record.weight === "袋" ? "袋" : "箱"}</b>
+
+<hr>
+            `;
+
+            record.items.forEach(item => {
+
+                html += `
+
+                    <div style="
+                        display:flex;
+                        justify-content:space-between;
+                        margin-bottom:6px;
+                    ">
+
+                        <span>${item.grade}</span>
+
+                        <span>${item.quantity}箱</span>
+
+                    </div>
+
+                `;
+
+            });
+
+            const originalIndex =
+                shipmentRecords.indexOf(record);
+
+            html += `
+
+                    <hr>
+
+                    <button
+                        onclick="editShipmentRecord(${originalIndex})">
+
+                        編集
+
+                    </button>
+
+                    <button
+                        onclick="deleteShipmentRecord(${originalIndex})">
+
+                        削除
+
+                    </button>
+
+                </div>
+
+            `;
+
+        });
+
+    
+renderShipmentSummary(records);
+
+list.innerHTML = html;
+
+    }
+function clearShipmentHistorySearch() {
+
+    document.getElementById("shipmentHistoryYear").value = "";
+
+    document.getElementById("shipmentHistoryField").value = "";
+
+    document.getElementById("shipmentHistoryDestination").value = "";
+
+    document.getElementById("shipmentHistoryFrom").value = "";
+
+    document.getElementById("shipmentHistoryTo").value = "";
+
+    renderShipmentHistory();
+
+}
+
+function renderShipmentHistoryFieldOptions() {
+
+    const select =
+        document.getElementById("shipmentHistoryField");
+
+    select.innerHTML =
+        `<option value="">全て</option>`;
+
+    fieldMaster.forEach(field => {
+
+        select.innerHTML += `
+            <option value="${field.no}">
+                No.${field.no} ${field.owner}
+            </option>
+        `;
+
+    });
+
+}
+function renderShipmentHistoryYearOptions() {
+
+    const select =
+        document.getElementById("shipmentHistoryYear");
+
+    select.innerHTML =
+        `<option value="">全て</option>`;
+
+    const years = [
+        ...new Set(
+            shipmentRecords.map(record =>
+                record.date.substring(0, 4)
+            )
+        )
+    ].sort().reverse();
+
+    years.forEach(year => {
+
+        select.innerHTML += `
+            <option value="${year}">
+                ${year}年
+            </option>
+        `;
+
+    });
+
+}
+function renderShipmentHistoryDestinationOptions() {
+
+    const select =
+        document.getElementById("shipmentHistoryDestination");
+
+    select.innerHTML =
+        `<option value="">全て</option>`;
+
+    const destinations = [
+        ...new Set(
+            shipmentRecords.map(record => record.destination)
+        )
+    ].sort();
+
+    destinations.forEach(destination => {
+
+        select.innerHTML += `
+            <option value="${destination}">
+                ${destination}
+            </option>
+        `;
+
+    });
+
+}
+function renderShipmentSummary(records) {
+
+    const summary =
+        document.getElementById("shipmentSummary");
+
+    const total = {
+        "M": 0,
+        "S": 0,
+        "2S": 0,
+        "○M": 0,
+        "C": 0
+    };
+const total2kg = {
+    "M": 0,
+    "S": 0,
+    "○M": 0,
+    "B": 0
+};
+let totalBag = 0;
+    records.forEach(record => {
+
+    if (record.weight === "4kg") {
+
+        record.items.forEach(item => {
+
+            if (total[item.grade] != null) {
+
+                total[item.grade] += Number(item.quantity);
+
+            }
+
+        });
+
+    }
+
+    if (record.weight === "2kg") {
+
+        record.items.forEach(item => {
+
+            if (total2kg[item.grade] != null) {
+
+                total2kg[item.grade] += Number(item.quantity);
+
+            }
+
+        });
+
+    }
+if (record.weight === "袋") {
+
+    record.items.forEach(item => {
+
+        totalBag += Number(item.quantity);
+
+    });
+
+}
+});
+const totalBoxes =
+    total["M"] +
+    total["S"] +
+    total["2S"] +
+    total["○M"] +
+    total["C"];
+    const totalBoxes2kg =
+    total2kg["M"] +
+    total2kg["S"] +
+    total2kg["○M"] +
+    total2kg["B"];
+    const grandTotal =
+    totalBoxes +
+    totalBoxes2kg +
+    totalBag;
+    summary.innerHTML = `
+
+    <div class="card">
+
+        <h4>📦 4kg（合計 ${totalBoxes}箱）</h4>
+
+        M：${total["M"]}箱<br>
+        S：${total["S"]}箱<br>
+        2S：${total["2S"]}箱<br>
+        ○M：${total["○M"]}箱<br>
+        C：${total["C"]}箱
+
+    </div>
+<div class="card">
+
+    <h4>📦 2kg（合計 ${totalBoxes2kg}箱）</h4>
+
+    M：${total2kg["M"]}箱<br>
+    S：${total2kg["S"]}箱<br>
+    ○M：${total2kg["○M"]}箱<br>
+    B：${total2kg["B"]}箱
+
+</div>
+<div class="card">
+
+    <h4>🛍 袋（合計 ${totalBag}袋）</h4>
+
+</div>
+    <div class="card">
+
+        <h3>📊 総出荷</h3>
+
+        4kg：${totalBoxes}箱<br>
+        2kg：${totalBoxes2kg}箱<br>
+        袋：${totalBag}袋
+
+    </div>
+`;
+
+
+}
