@@ -17,6 +17,10 @@ let editingIndex = -1;
 let materialFormVisible = false;
 let materialMaster = [];
 let editingMaterialIndex = -1;
+let priceMaster = [];
+let openedPriceIndex = -1;
+let priceFormVisible = false;
+let editingPriceIndex = -1;
 
 // ========================================
 // 資材倍率
@@ -594,4 +598,534 @@ function getMaterialCategoryName(category) {
         case "soil": return "土壌改良材";
         default: return "その他";
     }
+}
+
+// 指定日以前で一番新しい価格マスタを取得
+function getPriceByDate(date) {
+
+    // 新しい日付順に並び替え
+    const prices = [...priceMaster]
+        .sort((a, b) => b.date.localeCompare(a.date));
+
+    // 指定日以前の価格を探す
+    for (const price of prices) {
+
+        if (price.date <= date) {
+            return price;
+        }
+
+    }
+
+    // 該当する価格がない場合
+    return null;
+
+}
+// 指定日の重量・等級に対応する価格を取得
+function getPrice(weight, grade, date) {
+
+    // 指定日の価格マスタを取得
+    const priceData = getPriceByDate(date);
+
+    if (!priceData) return null;
+console.log(priceData.items);
+console.log(weight, grade);
+    // 重量・等級が一致する価格を検索
+    const item = priceData.items.find(item =>
+        item.weight === weight &&
+        item.grade === grade
+    );
+
+    // 見つかれば価格、なければnull
+    return item ? item.price : null;
+
+}
+
+// ------------------------
+// 価格マスタ
+// ------------------------
+function renderPriceMaster() {
+
+    app.innerHTML = `
+        <button id="btnBack">← 戻る</button>
+
+        <h2 style="margin-top:20px;">💰 価格マスタ</h2>
+
+        <button id="btnTogglePriceForm">
+            ${priceFormVisible ? "－ 入力を閉じる" : "＋ 新しい価格"}
+        </button>
+
+        <div id="priceForm"></div>
+
+        <hr>
+
+        <h3>登録された価格</h3>
+
+        <div id="priceList">
+            <p>まだ登録されていません。</p>
+        </div>
+    `;
+
+    document
+        .getElementById("btnBack")
+        .addEventListener("click", showSettings);
+
+    document
+        .getElementById("btnTogglePriceForm")
+        .addEventListener("click", togglePriceForm);
+
+    if (priceFormVisible) {
+
+        document.getElementById("priceForm").innerHTML = `
+
+            <br>
+
+            <label>日付</label><br>
+
+            <input type="date" id="priceDate"><br><br>
+
+            <h3>📦4kg</h3>
+
+            M<br>
+            <input type="number" id="price4kgM"><br><br>
+
+            ○M<br>
+            <input type="number" id="price4kgOM"><br><br>
+
+            S<br>
+            <input type="number" id="price4kgS"><br><br>
+
+            2S<br>
+            <input type="number" id="price4kg2S"><br><br>
+
+            C<br>
+            <input type="number" id="price4kgC"><br><br>
+
+            <hr>
+
+            <h3>📦2kg</h3>
+
+            M<br>
+            <input type="number" id="price2kgM"><br><br>
+
+            ○M<br>
+            <input type="number" id="price2kgOM"><br><br>
+
+            S<br>
+            <input type="number" id="price2kgS"><br><br>
+
+            B<br>
+            <input type="number" id="price2kgB"><br><br>
+
+            <hr>
+
+            <h3>🛍袋</h3>
+
+            袋<br>
+            <input type="number" id="priceBag"><br><br>
+
+            <button id="btnSavePrice">
+                ${editingPriceIndex === -1 ? "保存" : "更新"}
+            </button>
+
+        `;
+
+        document
+            .getElementById("btnSavePrice")
+            .addEventListener("click", savePrice);
+
+        if (editingPriceIndex !== -1) {
+
+            // editPrice()で値をセット
+            if (editingPriceIndex !== -1) {
+
+    setPriceForm(
+        priceMaster[editingPriceIndex]
+    );
+
+}
+
+        }
+
+    }
+
+    renderPriceList();
+
+}
+// ------------------------
+// 価格を保存
+// ------------------------
+function savePrice() {
+
+    const items = [];
+const date = document.getElementById("priceDate").value;
+
+if (!date) {
+
+    alert("日付を入力してください。");
+
+    return;
+
+}
+    // 価格を追加
+    function addPrice(weight, grade, value) {
+
+        value = Number(value);
+
+        if (!value || value <= 0) {
+            return;
+        }
+
+        items.push({
+            weight,
+            grade,
+            price: value
+        });
+
+    }
+
+    // 4kg
+    addPrice("4kg", "M", document.getElementById("price4kgM").value);
+    addPrice("4kg", "○M", document.getElementById("price4kgOM").value);
+    addPrice("4kg", "S", document.getElementById("price4kgS").value);
+    addPrice("4kg", "2S", document.getElementById("price4kg2S").value);
+    addPrice("4kg", "C", document.getElementById("price4kgC").value);
+
+    // 2kg
+    addPrice("2kg", "M", document.getElementById("price2kgM").value);
+    addPrice("2kg", "○M", document.getElementById("price2kgOM").value);
+    addPrice("2kg", "S", document.getElementById("price2kgS").value);
+    addPrice("2kg", "B", document.getElementById("price2kgB").value);
+
+    // 袋
+    addPrice("袋", "", document.getElementById("priceBag").value);
+
+    const price = {
+
+        date: date,
+
+        items
+
+    };
+
+    // 同じ日付があるか検索
+    const sameDateIndex = priceMaster.findIndex(
+        item => item.date === price.date
+    );
+
+    // 編集
+    if (editingPriceIndex !== -1) {
+
+        priceMaster[editingPriceIndex] = price;
+        editingPriceIndex = -1;
+
+    // 同じ日付なら上書き
+    } else if (sameDateIndex !== -1) {
+
+        priceMaster[sameDateIndex] = price;
+
+    // 新規追加
+    } else {
+
+        priceMaster.push(price);
+
+    }
+
+    // 日付の新しい順に並び替え
+    priceMaster.sort((a, b) =>
+        b.date.localeCompare(a.date)
+    );
+
+    savePriceMaster();
+openedPriceIndex = -1;
+editingPriceIndex = -1;
+    priceFormVisible = false;
+
+    renderPriceMaster();
+
+}
+
+
+// ------------------------
+// 価格一覧を表示
+// ------------------------
+function renderPriceList() {
+
+    const list =
+        document.getElementById("priceList");
+
+    if (priceMaster.length === 0) {
+
+        list.innerHTML = `
+            <p>まだ登録されていません。</p>
+        `;
+
+        return;
+
+    }
+
+    let html = "";
+
+    priceMaster.forEach((price, index) => {
+
+        html += `
+
+            <div class="card">
+
+                <b>${price.date}</b>
+
+                <br><br>
+
+                <button
+                    onclick="togglePriceDetail(${index})">
+
+                    ${
+                        openedPriceIndex === index
+                            ? "▲ 閉じる"
+                            : "▼ 価格を見る"
+                    }
+
+                </button>
+
+        `;
+
+        if (openedPriceIndex === index) {
+
+            html += `
+
+                <hr>
+
+                <b>📦4kg</b><br><br>
+
+            `;
+
+            price.items
+                .filter(item => item.weight === "4kg")
+                .forEach(item => {
+
+                    html += `
+                        ${item.grade}：
+                        ${item.price.toLocaleString()}円<br>
+                    `;
+
+                });
+
+            html += `
+
+                <br>
+
+                <b>📦2kg</b><br><br>
+
+            `;
+
+            price.items
+                .filter(item => item.weight === "2kg")
+                .forEach(item => {
+
+                    html += `
+                        ${item.grade}：
+                        ${item.price.toLocaleString()}円<br>
+                    `;
+
+                });
+
+            html += `
+
+                <br>
+
+                <b>🛍袋</b><br><br>
+
+            `;
+
+            price.items
+                .filter(item => item.weight === "袋")
+                .forEach(item => {
+
+                    html += `
+                        袋：
+                        ${item.price.toLocaleString()}円<br>
+                    `;
+
+                });
+
+            html += `<hr>`;
+
+        }
+
+        html += `
+
+                <button
+                    onclick="editPrice(${index})">
+
+                    編集
+
+                </button>
+
+                <button
+                    onclick="deletePrice(${index})">
+
+                    削除
+
+                </button>
+
+            </div>
+
+        `;
+
+    });
+
+    list.innerHTML = html;
+
+}
+// ------------------------
+// 価格詳細を開閉
+// ------------------------
+function togglePriceDetail(index) {
+
+    if (openedPriceIndex === index) {
+
+        openedPriceIndex = -1;
+
+    } else {
+
+        openedPriceIndex = index;
+
+    }
+
+    renderPriceList();
+
+}
+// ------------------------
+// 価格入力フォームへ値をセット
+// ------------------------
+function setPriceForm(price) {
+
+    document.getElementById("priceDate").value =
+        price.date;
+
+    // 一度空にする
+    document.getElementById("price4kgM").value = "";
+    document.getElementById("price4kgOM").value = "";
+    document.getElementById("price4kgS").value = "";
+    document.getElementById("price4kg2S").value = "";
+    document.getElementById("price4kgC").value = "";
+
+    document.getElementById("price2kgM").value = "";
+    document.getElementById("price2kgOM").value = "";
+    document.getElementById("price2kgS").value = "";
+    document.getElementById("price2kgB").value = "";
+
+    document.getElementById("priceBag").value = "";
+
+    // 価格をセット
+    price.items.forEach(item => {
+
+        if (item.weight === "4kg") {
+
+            if (item.grade === "M") {
+                document.getElementById("price4kgM").value = item.price;
+            }
+
+            if (item.grade === "○M") {
+                document.getElementById("price4kgOM").value = item.price;
+            }
+
+            if (item.grade === "S") {
+                document.getElementById("price4kgS").value = item.price;
+            }
+
+            if (item.grade === "2S") {
+                document.getElementById("price4kg2S").value = item.price;
+            }
+
+            if (item.grade === "C") {
+                document.getElementById("price4kgC").value = item.price;
+            }
+
+        }
+
+        if (item.weight === "2kg") {
+
+            if (item.grade === "M") {
+                document.getElementById("price2kgM").value = item.price;
+            }
+
+            if (item.grade === "○M") {
+                document.getElementById("price2kgOM").value = item.price;
+            }
+
+            if (item.grade === "S") {
+                document.getElementById("price2kgS").value = item.price;
+            }
+
+            if (item.grade === "B") {
+                document.getElementById("price2kgB").value = item.price;
+            }
+
+        }
+
+        if (item.weight === "袋") {
+
+            document.getElementById("priceBag").value =
+                item.price;
+
+        }
+
+    });
+
+}
+// ------------------------
+// 価格を編集
+// ------------------------
+function editPrice(index) {
+
+    editingPriceIndex = index;
+
+    priceFormVisible = true;
+
+    renderPriceMaster();
+
+}
+// ------------------------
+// 価格を削除
+// ------------------------
+function deletePrice(index) {
+
+    if (!confirm("この価格を削除しますか？")) {
+
+        return;
+
+    }
+
+    priceMaster.splice(index, 1);
+
+    savePriceMaster();
+
+    if (editingPriceIndex === index) {
+
+        editingPriceIndex = -1;
+
+        priceFormVisible = false;
+
+    }
+
+    openedPriceIndex = -1;
+
+    renderPriceMaster();
+
+}
+// ------------------------
+// 価格入力フォーム開閉
+// ------------------------
+function togglePriceForm() {
+
+    priceFormVisible = !priceFormVisible;
+
+    if (!priceFormVisible) {
+
+        editingPriceIndex = -1;
+
+    }
+
+    renderPriceMaster();
+
 }

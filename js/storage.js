@@ -5,7 +5,6 @@
 // ==========================================
 
 
-
 // ==========================================
 // 田んぼマスタ
 // ==========================================
@@ -138,7 +137,8 @@ function exportBackup() {
         templateMaster,
         fertilizerPlanList,
         recordList,
-        shipmentRecords
+        shipmentRecords,
+        priceMaster
 
     };
 
@@ -189,6 +189,8 @@ function importBackup() {
             fertilizerPlanList = backupData.fertilizerPlanList || [];
 　　　templateMaster = backupData.templateMaster || [];
 　　　shipmentRecords = backupData.shipmentRecords || [];
+             priceMaster = backup.priceMaster || [];
+
             // すべての内部データをストレージへ即時反映
             saveFieldMaster();
             saveWorkMaster();
@@ -196,6 +198,7 @@ function importBackup() {
             saveRecordList();
             saveFertilizerPlanList();
             saveTemplateMaster();
+            savePriceMaster();
             window.editShipmentIndex = null;
 shipmentItems = [];
             alert("復元しました。");
@@ -223,7 +226,8 @@ function exportBackupHistory() {
         templateMaster,
         fertilizerPlanList,
         recordList,
-        shipmentRecords
+        shipmentRecords,
+        priceMaster
 
     };
 
@@ -529,5 +533,26 @@ function createDefaultWorkMaster() {
     ];
 
     saveWorkMaster();
+
+}
+
+function savePriceMaster() {
+
+    localStorage.setItem(
+        "priceMaster",
+        JSON.stringify(priceMaster)
+    );
+
+}
+
+function loadPriceMaster() {
+
+    const data = localStorage.getItem("priceMaster");
+
+    if (data) {
+        priceMaster = JSON.parse(data);
+    } else {
+        priceMaster = [];
+    }
 
 }

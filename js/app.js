@@ -316,6 +316,7 @@ console.log("showSettings");
             <button id="btnFieldMaster">田んぼマスタ</button>
             <button id="btnWorkMaster">作業マスタ</button>
             <button id="btnMaterialMaster">資材マスタ</button>
+            <button id="btnPriceMaster">    💰価格マスタ</button>
             <button onclick="showFertilizerPlan()">    🌱施肥設計</button>
         </div>
 
@@ -360,7 +361,9 @@ console.log("showSettings");
     document
     .getElementById("btnBackupHistory")
     .addEventListener("click", exportBackupHistory);
-
+document
+    .getElementById("btnPriceMaster")
+    .addEventListener("click", renderPriceMaster);
 
 
 
@@ -411,7 +414,7 @@ loadFertilizerPlanList();
 loadRecordList();
 loadTemplateMaster();
 showInput();
-
+loadPriceMaster();
 // ------------------------
 // 田んぼプルダウン
 // ------------------------

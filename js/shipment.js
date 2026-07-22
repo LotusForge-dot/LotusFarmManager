@@ -540,7 +540,9 @@ function renderShipmentHistory() {
         records = records.filter(record =>
             record.date <= to
         );
-        }
+
+    }
+
     if (records.length === 0) {
 
         list.innerHTML = `
@@ -559,12 +561,17 @@ function renderShipmentHistory() {
         .slice()
         .reverse()
         .forEach((record) => {
-const totalBoxes =
-    record.items.reduce(
-        (sum, item) => sum + Number(item.quantity),
-        0
-    );
-    
+
+            const totalBoxes =
+                record.items.reduce(
+                    (sum, item) =>
+                        sum + Number(item.quantity),
+                    0
+                );
+
+            const sales =
+                getShipmentSales(record);
+
             html += `
 
                 <div class="card">
@@ -582,29 +589,72 @@ const totalBoxes =
                     <br><br>
 
                     <b>${record.weight}</b>
-　
-<b>${record.package}</b>
+                    &nbsp;&nbsp;
+                    <b>${record.package}</b>
 
-<br>
+                    <br>
 
-<b>合計：${totalBoxes}${record.weight === "袋" ? "袋" : "箱"}</b>
+                    <b>
+                        合計：${totalBoxes}${record.weight === "袋" ? "袋" : "箱"}
+                    </b>
 
-<hr>
+                    <br>
+
+                    <b>
+                        💰 売上：
+                        ${
+                            sales == null
+                                ? "価格未登録"
+                                : sales.toLocaleString() + "円"
+                        }
+                    </b>
+
+                    <hr>
+
             `;
 
             record.items.forEach(item => {
 
+                const price = getPrice(
+                    record.weight,
+                    item.grade,
+                    record.date
+                );
+
+                const itemSales =
+                    price == null
+                        ? null
+                        : price * Number(item.quantity);
+
                 html += `
 
-                    <div style="
-                        display:flex;
-                        justify-content:space-between;
-                        margin-bottom:6px;
-                    ">
+                    <div class="shipment-sale-row">
 
-                        <span>${item.grade}</span>
+                        <span class="shipment-sale-grade">
+                            ${item.grade}
+                        </span>
 
-                        <span>${item.quantity}箱</span>
+                        ${
+                            price == null
+                                ? `
+                                    <span style="flex:1;">
+                                        価格未登録
+                                    </span>
+                                `
+                                : `
+                                    <span class="shipment-sale-price">
+                                        ${price.toLocaleString()}円
+                                    </span>
+
+                                    <span class="shipment-sale-quantity">
+                                        × ${item.quantity}${record.weight === "袋" ? "袋" : "箱"}
+                                    </span>
+
+                                    <span class="shipment-sale-total">
+                                        = ${itemSales.toLocaleString()}円
+                                    </span>
+                                `
+                        }
 
                     </div>
 
@@ -621,16 +671,12 @@ const totalBoxes =
 
                     <button
                         onclick="editShipmentRecord(${originalIndex})">
-
                         編集
-
                     </button>
 
                     <button
                         onclick="deleteShipmentRecord(${originalIndex})">
-
                         削除
-
                     </button>
 
                 </div>
@@ -639,12 +685,11 @@ const totalBoxes =
 
         });
 
-    
-renderShipmentSummary(records);
+    renderShipmentSummary(records);
 
-list.innerHTML = html;
+    list.innerHTML = html;
 
-    }
+}
 function clearShipmentHistorySearch() {
 
     document.getElementById("shipmentHistoryYear").value = "";
@@ -734,9 +779,13 @@ function renderShipmentHistoryDestinationOptions() {
 }
 function renderShipmentSummary(records) {
 
+    // 総売上
+    const totalSales = getTotalShipmentSales(records);
+
     const summary =
         document.getElementById("shipmentSummary");
 
+    // 4kg箱数
     const total = {
         "M": 0,
         "S": 0,
@@ -744,105 +793,276 @@ function renderShipmentSummary(records) {
         "○M": 0,
         "C": 0
     };
-const total2kg = {
-    "M": 0,
-    "S": 0,
-    "○M": 0,
-    "B": 0
-};
-let totalBag = 0;
+
+    // 2kg箱数
+    const total2kg = {
+        "M": 0,
+        "S": 0,
+        "○M": 0,
+        "B": 0
+    };
+
+    // 4kg売上
+    const sales4kg = {
+        "M": 0,
+        "S": 0,
+        "2S": 0,
+        "○M": 0,
+        "C": 0
+    };
+
+    // 2kg売上
+    const sales2kg = {
+        "M": 0,
+        "S": 0,
+        "○M": 0,
+        "B": 0
+    };
+
+    // 袋
+    let totalBag = 0;
+    let salesBag = 0;
+
+    // 集計
     records.forEach(record => {
 
-    if (record.weight === "4kg") {
+        // ----------4kg----------
+        if (record.weight === "4kg") {
 
-        record.items.forEach(item => {
+            record.items.forEach(item => {
 
-            if (total[item.grade] != null) {
+                if (total[item.grade] != null) {
 
-                total[item.grade] += Number(item.quantity);
+                    total[item.grade] += Number(item.quantity);
 
-            }
+                }
 
-        });
+                const price = getPrice(
+                    record.weight,
+                    item.grade,
+                    record.date
+                );
 
-    }
+                if (
+                    price != null &&
+                    sales4kg[item.grade] != null
+                ) {
 
-    if (record.weight === "2kg") {
+                    sales4kg[item.grade] +=
+                        price * Number(item.quantity);
 
-        record.items.forEach(item => {
+                }
 
-            if (total2kg[item.grade] != null) {
+            });
 
-                total2kg[item.grade] += Number(item.quantity);
+        }
 
-            }
+        // ----------2kg----------
+        if (record.weight === "2kg") {
 
-        });
+            record.items.forEach(item => {
 
-    }
-if (record.weight === "袋") {
+                if (total2kg[item.grade] != null) {
 
-    record.items.forEach(item => {
+                    total2kg[item.grade] +=
+                        Number(item.quantity);
 
-        totalBag += Number(item.quantity);
+                }
+
+                const price = getPrice(
+                    record.weight,
+                    item.grade,
+                    record.date
+                );
+
+                if (
+                    price != null &&
+                    sales2kg[item.grade] != null
+                ) {
+
+                    sales2kg[item.grade] +=
+                        price * Number(item.quantity);
+
+                }
+
+            });
+
+        }
+
+        // ----------袋----------
+        if (record.weight === "袋") {
+
+            record.items.forEach(item => {
+
+                totalBag += Number(item.quantity);
+
+                const price = getPrice(
+                    record.weight,
+                    item.grade,
+                    record.date
+                );
+
+                if (price != null) {
+
+                    salesBag +=
+                        price * Number(item.quantity);
+
+                }
+
+            });
+
+        }
 
     });
 
-}
-});
-const totalBoxes =
-    total["M"] +
-    total["S"] +
-    total["2S"] +
-    total["○M"] +
-    total["C"];
+    // 合計箱数
+    const totalBoxes =
+        total["M"] +
+        total["S"] +
+        total["2S"] +
+        total["○M"] +
+        total["C"];
+
     const totalBoxes2kg =
-    total2kg["M"] +
-    total2kg["S"] +
-    total2kg["○M"] +
-    total2kg["B"];
-    const grandTotal =
-    totalBoxes +
-    totalBoxes2kg +
-    totalBag;
+        total2kg["M"] +
+        total2kg["S"] +
+        total2kg["○M"] +
+        total2kg["B"];
+
     summary.innerHTML = `
 
-    <div class="card">
-
-        <h4>📦 4kg（合計 ${totalBoxes}箱）</h4>
-
-        M：${total["M"]}箱<br>
-        S：${total["S"]}箱<br>
-        2S：${total["2S"]}箱<br>
-        ○M：${total["○M"]}箱<br>
-        C：${total["C"]}箱
-
-    </div>
 <div class="card">
 
-    <h4>📦 2kg（合計 ${totalBoxes2kg}箱）</h4>
+<h4>📦4kg（合計 ${totalBoxes}箱）</h4>
 
-    M：${total2kg["M"]}箱<br>
-    S：${total2kg["S"]}箱<br>
-    ○M：${total2kg["○M"]}箱<br>
-    B：${total2kg["B"]}箱
+M：${total["M"]}箱（${sales4kg["M"].toLocaleString()}円）<br>
+○M：${total["○M"]}箱（${sales4kg["○M"].toLocaleString()}円）<br>
+S：${total["S"]}箱（${sales4kg["S"].toLocaleString()}円）<br>
+2S：${total["2S"]}箱（${sales4kg["2S"].toLocaleString()}円）<br>
+C：${total["C"]}箱（${sales4kg["C"].toLocaleString()}円）
 
 </div>
+
 <div class="card">
 
-    <h4>🛍 袋（合計 ${totalBag}袋）</h4>
+<h4>📦2kg（合計 ${totalBoxes2kg}箱）</h4>
+
+M：${total2kg["M"]}箱（${sales2kg["M"].toLocaleString()}円）<br>
+○M：${total2kg["○M"]}箱（${sales2kg["○M"].toLocaleString()}円）<br>
+S：${total2kg["S"]}箱（${sales2kg["S"].toLocaleString()}円）<br>
+B：${total2kg["B"]}箱（${sales2kg["B"].toLocaleString()}円）
 
 </div>
-    <div class="card">
 
-        <h3>📊 総出荷</h3>
+<div class="card">
 
-        4kg：${totalBoxes}箱<br>
-        2kg：${totalBoxes2kg}箱<br>
-        袋：${totalBag}袋
+<h4>🛍袋（合計 ${totalBag}袋）</h4>
 
-    </div>
+売上：${salesBag.toLocaleString()}円
+
+</div>
+
+<div class="card">
+
+<h3>📊総出荷</h3>
+
+4kg：${totalBoxes}箱<br>
+2kg：${totalBoxes2kg}箱<br>
+袋：${totalBag}袋
+
+<br><br>
+
+<b>
+💰総売上：
+${
+    totalSales == null
+        ? "価格未登録"
+        : totalSales.toLocaleString() + "円"
+}
+</b>
+
+</div>
+
 `;
 
+}
+
+// 出荷記録の売上を計算
+function getShipmentSales(record) {
+
+    let total = 0;
+    let hasPrice = false;
+
+    // 出荷内容ごとに売上を計算
+    for (const item of record.items) {
+
+        // 単価を取得
+        const price = getPrice(
+            record.weight,
+            item.grade,
+            record.date
+        );
+console.log(
+    record.date,
+    record.weight,
+    item.grade,
+    getPrice(record.weight, item.grade, record.date)
+);
+        // 価格未登録ならスキップ
+        if (price == null) continue;
+
+        hasPrice = true;
+
+        // 売上加算
+        total += price * item.quantity;
+
+    }
+
+    // 価格が1件も見つからなかった場合
+    if (!hasPrice) {
+        return null;
+    }
+
+    return total;
+
+}
+
+// 売上を表示用文字列へ変換
+function formatSales(record) {
+
+    const sales = getShipmentSales(record);
+
+    // 価格未登録
+    if (sales == null) {
+        return "価格未登録";
+    }
+
+    // 金額表示
+    return sales.toLocaleString() + "円";
+
+}
+
+// 出荷記録一覧の総売上を計算
+function getTotalShipmentSales(records) {
+
+    let total = 0;
+    let hasPrice = false;
+
+    for (const record of records) {
+
+        const sales = getShipmentSales(record);
+
+        if (sales == null) continue;
+
+        hasPrice = true;
+        total += sales;
+
+    }
+
+    if (!hasPrice) {
+        return null;
+    }
+
+    return total;
 
 }

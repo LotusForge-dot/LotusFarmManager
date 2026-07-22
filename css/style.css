@@ -337,6 +337,34 @@ flex-end; gap: 8px; margin-top: 12px; }
     padding: 0;
 }
 
+/* 出荷履歴 売上明細 */
+.shipment-sale-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:6px;
+}
+
+.shipment-sale-grade{
+    width:40px;
+    font-weight:bold;
+}
+
+.shipment-sale-price{
+    width:80px;
+    text-align:right;
+}
+
+.shipment-sale-quantity{
+    width:60px;
+    text-align:right;
+}
+
+.shipment-sale-total{
+    width:90px;
+    text-align:right;
+    font-weight:bold;
+}
 
 
 
