@@ -1579,8 +1579,7 @@ function updateFertilizerSummary() {
     document.getElementById("totalPrice").textContent =   totalPrice.toLocaleString();
     const fieldNo = document.getElementById("planField").value;
 
-console.log("fieldNo =", fieldNo);
-console.log("fieldMaster =", fieldMaster);
+
 
 const field =
     fieldMaster.find(f => String(f.no) === String(fieldNo));
@@ -3456,11 +3455,11 @@ function saveFoliarRecord() {
     const tankVolumeL = tankSelect ? Number(tankSelect.value) : 0; // 例: 200 (L)
     const tankSizeStr = tankSelect ? tankSelect.value + "L" : "未設定";
 
-    // 3. 資材データの取得（メイン行）
+    const materials = [];
+
+    // 3. メイン行の資材データ取得
     const mainMaterialSelect = document.getElementById("sprayMaterial");
     const mainDilutionSelect = document.getElementById("sprayDilution");
-
-    const materials = [];
 
     if (mainMaterialSelect && mainMaterialSelect.value !== "") {
         const matIndex = Number(mainMaterialSelect.value);
@@ -3469,7 +3468,6 @@ function saveFoliarRecord() {
 
         if (matMaster && dilution > 0) {
             // タンク容量(L) ÷ 倍率 × 1000 ＝ 使用量(mL)
-            // 例: 200L ÷ 1000倍 × 1000 = 200 mL
             const amountMl = (tankVolumeL / dilution) * 1000;
 
             materials.push({
@@ -3480,17 +3478,34 @@ function saveFoliarRecord() {
         }
     }
 
-    // 動的に追加されたリスト（sprayMaterials）がある場合
+    // 4. 動的に追加されたリスト（sprayMaterials）の資材データ取得
     if (typeof sprayMaterials !== "undefined" && sprayMaterials.length > 0) {
         sprayMaterials.forEach(item => {
             const matMaster = materialMaster[item.materialIndex];
+            
             if (matMaster) {
-                // item.amount に入っているmL値（または倍率からの再計算値）
-                materials.push({
-                    material: matMaster.name,
-                    amount: item.amount || 0,
-                    unit: "mL"
-                });
+                let amountMl = 0;
+
+                // item に倍率 (item.dilution) が入っている場合はタンク容量から mL を計算
+                const dilution = Number(item.dilution) || 0;
+                if (tankVolumeL > 0 && dilution > 0) {
+                    amountMl = (tankVolumeL / dilution) * 1000;
+                } else {
+                    // すでに mL 値として item.amount がセットされている場合のフォールバック
+                    amountMl = Number(item.amount) || 0;
+                    // もし 1未満の小数の場合（0.2などLで入っている場合）は1000倍してmLにする
+                    if (amountMl > 0 && amountMl < 10) {
+                        amountMl = amountMl * 1000;
+                    }
+                }
+
+                if (amountMl > 0) {
+                    materials.push({
+                        material: matMaster.name,
+                        amount: amountMl,
+                        unit: "mL"
+                    });
+                }
             }
         });
     }
@@ -3500,7 +3515,7 @@ function saveFoliarRecord() {
         return;
     }
 
-    // 4. 日付取得バグの修正 ＆ レコード生成
+    // 5. 日付取得 ＆ レコード生成
     const dateInput = document.getElementById("recordDate");
     const inputDate = (dateInput && dateInput.value) ? dateInput.value : getToday();
 
@@ -3522,7 +3537,7 @@ function saveFoliarRecord() {
         });
     });
 
-    // 5. グローバル配列へ追加と保存
+    // 6. グローバル配列へ追加と保存
     recordList.push(record);
     if (typeof saveRecordList === "function") {
         saveRecordList();
@@ -3530,7 +3545,7 @@ function saveFoliarRecord() {
 
     alert("葉面散布の記録を保存しました！");
 
-    // 6. 状態クリアと画面リフレッシュ
+    // 7. 状態クリアと画面リフレッシュ
     selectedFieldIds = [];
     if (typeof sprayMaterials !== "undefined") {
         sprayMaterials = [];
@@ -3542,7 +3557,7 @@ function saveFoliarRecord() {
         showInput();
     }
 }
-
+　
 /**
  * 葉面散布画面用の田んぼ選択ボタンを動的に生成する
  */
@@ -3601,7 +3616,6 @@ function initFoliarFieldButtons() {
         container.appendChild(btn);
     });
 }
-
 
 
 function createNormalDetailHtml(record) {
