@@ -4035,7 +4035,7 @@ function renderFertilizerSummaryList() {
             "fertilizerSummaryList"
         );
 
-    // 資材集計を取得
+    // 資材集計取得
     const summary =
         getMaterialSummary();
 
@@ -4067,25 +4067,48 @@ function renderFertilizerSummaryList() {
         const material =
             summary[master.name];
 
-        // 集計に無い資材はスキップ
         if (!material) return;
 
         // 単価
         const price =
             Number(master.price) || 0;
 
+        // 必要数量
+        const quantity =
+            Number(material.quantity);
+
         // 資材費
         const cost =
-            material.quantity * price;
+            quantity * price;
 
         totalCost += cost;
 
-        // アイコン切替
-        const opened =
-    openedMaterials.includes(master.name);
+        // 現在在庫
+        const stock =
+            Number(master.stock) || 0;
 
-const icon =
-    opened ? "📂" : "📦";
+        // 不足数量
+        const shortage =
+            Math.max(
+                0,
+                quantity - stock
+            );
+
+        // 発注金額
+        const orderCost =
+            shortage * price;
+
+        // 展開状態
+        const opened =
+            openedMaterials.includes(
+                master.name
+            );
+
+        // アイコン
+        const icon =
+            opened
+                ? "📂"
+                : "📦";
 
         html += `
 
@@ -4098,24 +4121,40 @@ const icon =
 
                     <b>
 
-                        ${icon} ${master.name}
+                        ${icon}
+                        ${master.name}
 
                     </b>
 
                     <b>
 
-                        ${material.quantity}${material.unit}
+                        ${quantity}${material.unit}
 
                     </b>
 
                 </div>
 
-                <div class="material-summary-price">
+                <div class="material-summary-row">
 
                     <span>
 
-                        単価：
+                        単価
+
+                    </span>
+
+                    <b>
+
                         ${price.toLocaleString()}円
+
+                    </b>
+
+                </div>
+
+                <div class="material-summary-row">
+
+                    <span>
+
+                        資材費
 
                     </span>
 
@@ -4127,11 +4166,71 @@ const icon =
 
                 </div>
 
+                <div class="material-summary-row">
+
+                    <span>
+
+                        在庫
+
+                    </span>
+
+                    <b>
+
+                        ${stock}${material.unit}
+
+                    </b>
+
+                </div>
+
+                <div class="material-summary-row">
+
+                    <span>
+
+                        不足
+
+                    </span>
+
+                    <b class="material-shortage">
+
+                        ${
+                            shortage > 0
+                                ? `${shortage}${material.unit}`
+                                : "なし"
+                        }
+
+                    </b>
+
+                </div>
+
                 ${
-    opened
-        ? renderMaterialDetail(master.name)
-        : ""
-}
+                    shortage > 0
+                        ? `
+
+                        <div class="material-order-cost">
+
+                            <span>
+
+                                発注金額
+
+                            </span>
+
+                            <b>
+
+                                ${orderCost.toLocaleString()}円
+
+                            </b>
+
+                        </div>
+
+                        `
+                        : ""
+                }
+
+                ${
+                    opened
+                        ? renderMaterialDetail(master.name)
+                        : ""
+                }
 
             </div>
 
@@ -4139,12 +4238,16 @@ const icon =
 
     });
 
-    // 合計資材費
+    // 合計資材費カード
     html = `
 
         <div class="card">
 
-            <h3>💴 合計資材費</h3>
+            <h3>
+
+                💴 合計資材費
+
+            </h3>
 
             <h2>
 

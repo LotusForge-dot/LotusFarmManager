@@ -351,6 +351,8 @@ function renderMaterialMaster() {
             <label>単価（円）</label><br>
             <input type="number" id="materialPrice"><br><br>
             <hr>
+            <label>現在在庫</label><br>
+<input type="number" id="materialStock"><br><br>
             <h3>登録倍率</h3>
             <div id="dilutionList"></div>
             <button type="button" id="btnAddDilution">＋倍率追加</button>
@@ -383,6 +385,7 @@ categorySelect.innerHTML = MATERIAL_CATEGORIES.map(c =>
             document.getElementById("materialP").value = material.p || 0;
             document.getElementById("materialK").value = material.k || 0;
             document.getElementById("materialPrice").value = material.price || 0;
+            document.getElementById("materialStock").value =material.stock || 0;
            document.getElementById("materialCategory").value =
     material.category || "fertilizer";     
             document.querySelectorAll("#workCheckList input[type='checkbox']").forEach(check => {
@@ -428,6 +431,7 @@ function renderMaterialList() {
                     <th>P</th>
                     <th>K</th>
                     <th>単価</th>
+                    <th>在庫</th>
                     <th>倍率</th>
                     <th>使用可能作業</th>
                     <th>操作</th>
@@ -449,7 +453,8 @@ function renderMaterialList() {
                     <td>${material.p || ""}</td>
                     <td>${material.k || ""}</td>
                     <td>${material.price ? material.price + "円" : ""}</td>
-                    <td>${dilutionsText}</td>
+<td>${material.stock ?? 0}${material.unit || ""}</td>
+<td>${dilutionsText}</td>
                     <td>${worksText}</td>
                     <td>
                         <button onclick="editMaterial(${index})">✏️</button>
@@ -481,6 +486,9 @@ function saveMaterial() {
         p: Number(document.getElementById("materialP").value),
         k: Number(document.getElementById("materialK").value),
         price: Number(document.getElementById("materialPrice").value),
+        stock: Number(
+    document.getElementById("materialStock").value
+),
         works: works,
         dilutions: materialDilutions.filter(v => v !== "" && v !== 0).map(Number)
     };
