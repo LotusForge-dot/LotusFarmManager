@@ -29,8 +29,7 @@ let materialDilutions = [];
 
 // ========================================
 // カテゴリー
-
-// ========================
+// ========================================
 const MATERIAL_CATEGORIES = [
     { value: "fertilizer", label: "肥料" },
     { value: "variety", label: "品種" },
@@ -315,48 +314,56 @@ function renderMaterialMaster() {
             <br>
             <label>資材名</label><br>
             <input type="text" id="materialName"><br><br>
+            
             <label>カテゴリー</label><br>
-<select id="materialCategory"></select>
-<br><br>
+            <select id="materialCategory"></select>
+            <br><br>
 
-
-
-<br><br>
-            <label>単位</label><br>
+            <label>管理/購入単位</label><br>
             <select id="materialUnit">
+                <option value="袋">袋</option>
+                <option value="本">本</option>
+                <option value="缶">缶</option>
+                <option value="箱">箱</option>
+                <option value="個">個</option>
+                <option value="kg">kg</option>
+                <option value="L">L</option>
+            </select>
+            <br><br>
 
-    <option value="kg">kg</option>
-    <option value="g">g</option>
+            <label>1個あたりの内容量</label><br>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <input type="number" id="materialWeight" placeholder="例: 500" style="flex:1;">
+                <select id="materialWeightUnit" style="width:80px;">
+                    <option value="ml">ml</option>
+                    <option value="L">L</option>
+                    <option value="kg">kg</option>
+                    <option value="g">g</option>
+                </select>
+            </div>
+            <br>
 
-    <option value="L">L</option>
-    <option value="ml">ml</option>
-
-    <option value="袋">袋</option>
-    <option value="本">本</option>
-
-    <option value="缶">缶</option>
-    <option value="箱">箱</option>
-
-    <option value="個">個</option>
-
-</select>
-            <label>内容量</label><br>
-            <input type="number" id="materialWeight"><br><br>
             <label>N（％）</label><br>
             <input type="number" id="materialN" step="0.1"><br><br>
+            
             <label>P（％）</label><br>
             <input type="number" id="materialP" step="0.1"><br><br>
+            
             <label>K（％）</label><br>
             <input type="number" id="materialK" step="0.1"><br><br>
+            
             <label>単価（円）</label><br>
             <input type="number" id="materialPrice"><br><br>
             <hr>
+
             <label>現在在庫</label><br>
-<input type="number" id="materialStock"><br><br>
+            <input type="number" id="materialStock"><br><br>
+
             <h3>登録倍率</h3>
             <div id="dilutionList"></div>
             <button type="button" id="btnAddDilution">＋倍率追加</button>
             <hr>
+
             <label>使用可能作業</label><br>
             <div id="workCheckList"></div>
             <br>
@@ -365,11 +372,12 @@ function renderMaterialMaster() {
         
         document.getElementById("btnSaveMaterial").addEventListener("click", saveMaterial);
         document.getElementById("btnAddDilution").addEventListener("click", addDilution);
-const categorySelect = document.getElementById("materialCategory");
 
-categorySelect.innerHTML = MATERIAL_CATEGORIES.map(c =>
-    `<option value="${c.value}">${c.label}</option>`
-).join("");
+        const categorySelect = document.getElementById("materialCategory");
+        categorySelect.innerHTML = MATERIAL_CATEGORIES.map(c =>
+            `<option value="${c.value}">${c.label}</option>`
+        ).join("");
+
         renderDilutionInputs();
         renderWorkCheckList();
 
@@ -378,16 +386,17 @@ categorySelect.innerHTML = MATERIAL_CATEGORIES.map(c =>
             materialDilutions = [...(material.dilutions || [])];
 
             renderDilutionInputs();
-            document.getElementById("materialName").value = material.name;
-            document.getElementById("materialUnit").value = material.unit || "";
+            document.getElementById("materialName").value = material.name || "";
+            document.getElementById("materialUnit").value = material.unit || "袋";
             document.getElementById("materialWeight").value = material.weight || 0;
+            document.getElementById("materialWeightUnit").value = material.weightUnit || "kg";
             document.getElementById("materialN").value = material.n || 0;
             document.getElementById("materialP").value = material.p || 0;
             document.getElementById("materialK").value = material.k || 0;
             document.getElementById("materialPrice").value = material.price || 0;
-            document.getElementById("materialStock").value =material.stock || 0;
-           document.getElementById("materialCategory").value =
-    material.category || "fertilizer";     
+            document.getElementById("materialStock").value = material.stock || 0;
+            document.getElementById("materialCategory").value = material.category || "fertilizer";     
+
             document.querySelectorAll("#workCheckList input[type='checkbox']").forEach(check => {
                 check.checked = material.works && material.works.includes(check.value);
             });
@@ -412,7 +421,6 @@ function renderMaterialList() {
     let html = "";
 
     MATERIAL_CATEGORIES.forEach(category => {
-
         const materials = materialMaster.filter(
             material => material.category === category.value
         );
@@ -424,8 +432,7 @@ function renderMaterialList() {
             <table border="1" width="100%" cellspacing="0" cellpadding="5">
                 <tr>
                     <th>資材名</th>
-                    
-                    <th>単位</th>
+                    <th>管理単位</th>
                     <th>内容量</th>
                     <th>N</th>
                     <th>P</th>
@@ -439,22 +446,25 @@ function renderMaterialList() {
         `;
 
         materials.forEach(material => {
-
             const dilutionsText = (material.dilutions || []).map(v => v + "倍").join("、");
             const worksText = (material.works || []).join("、");
             const index = materialMaster.indexOf(material);
+
+            // 内容量の表示（例: 500ml / 20kg）
+            const weightUnitText = material.weightUnit || "kg";
+            const weightDisplay = material.weight ? material.weight + weightUnitText : "";
 
             html += `
                 <tr>
                     <td>${material.name}</td>
                     <td>${material.unit || ""}</td>
-                    <td>${material.weight ? material.weight + "kg" : ""}</td>
+                    <td>${weightDisplay}</td>
                     <td>${material.n || ""}</td>
                     <td>${material.p || ""}</td>
                     <td>${material.k || ""}</td>
-                    <td>${material.price ? material.price + "円" : ""}</td>
-<td>${material.stock ?? 0}${material.unit || ""}</td>
-<td>${dilutionsText}</td>
+                    <td>${material.price ? material.price.toLocaleString() + "円" : ""}</td>
+                    <td>${material.stock ?? 0}${material.unit || ""}</td>
+                    <td>${dilutionsText}</td>
                     <td>${worksText}</td>
                     <td>
                         <button onclick="editMaterial(${index})">✏️</button>
@@ -465,7 +475,6 @@ function renderMaterialList() {
         });
 
         html += `</table><br>`;
-
     });
 
     list.innerHTML = html;
@@ -482,13 +491,12 @@ function saveMaterial() {
         category: document.getElementById("materialCategory").value,
         unit: document.getElementById("materialUnit").value,
         weight: Number(document.getElementById("materialWeight").value),
+        weightUnit: document.getElementById("materialWeightUnit").value,
         n: Number(document.getElementById("materialN").value),
         p: Number(document.getElementById("materialP").value),
         k: Number(document.getElementById("materialK").value),
         price: Number(document.getElementById("materialPrice").value),
-        stock: Number(
-    document.getElementById("materialStock").value
-),
+        stock: Number(document.getElementById("materialStock").value),
         works: works,
         dilutions: materialDilutions.filter(v => v !== "" && v !== 0).map(Number)
     };
@@ -509,15 +517,6 @@ function editMaterial(index) {
     editingMaterialIndex = index;
     materialFormVisible = true;
     renderMaterialMaster();
-
-    const material = materialMaster[index];
-    document.getElementById("materialName").value = material.name;
-    document.getElementById("materialUnit").value = material.unit;
-    document.getElementById("materialCategory").value =
-    material.category || "fertilizer";
-    document.querySelectorAll("#workCheckList input[type='checkbox']").forEach(check => {
-        check.checked = material.works && material.works.includes(check.value);
-    });
 }
 
 function deleteMaterial(index) {
@@ -591,11 +590,13 @@ function renderDilutionInputs() {
     });
     area.innerHTML = html;
 }
+
 // 指定した資材の希釈設定を削除して入力欄を更新
 function removeDilution(index) {
     materialDilutions.splice(index, 1);
     renderDilutionInputs();
 }
+
 // 資材カテゴリーコードから表示名を取得
 function getMaterialCategoryName(category) {
     switch (category) {
@@ -610,407 +611,213 @@ function getMaterialCategoryName(category) {
 
 // 指定日以前で一番新しい価格マスタを取得
 function getPriceByDate(date) {
-
-    // 新しい日付順に並び替え
-    const prices = [...priceMaster]
-        .sort((a, b) => b.date.localeCompare(a.date));
-
-    // 指定日以前の価格を探す
+    const prices = [...priceMaster].sort((a, b) => b.date.localeCompare(a.date));
     for (const price of prices) {
-
         if (price.date <= date) {
             return price;
         }
-
     }
-
-    // 該当する価格がない場合
     return null;
-
 }
+
 // 指定日の重量・等級に対応する価格を取得
 function getPrice(weight, grade, date) {
-
-    // 指定日の価格マスタを取得
     const priceData = getPriceByDate(date);
-
     if (!priceData) return null;
-console.log(priceData.items);
-console.log(weight, grade);
-    // 重量・等級が一致する価格を検索
     const item = priceData.items.find(item =>
         item.weight === weight &&
         item.grade === grade
     );
-
-    // 見つかれば価格、なければnull
     return item ? item.price : null;
-
 }
 
 // ------------------------
 // 価格マスタ
 // ------------------------
 function renderPriceMaster() {
-
     app.innerHTML = `
         <button id="btnBack">← 戻る</button>
-
         <h2 style="margin-top:20px;">💰 価格マスタ</h2>
-
         <button id="btnTogglePriceForm">
             ${priceFormVisible ? "－ 入力を閉じる" : "＋ 新しい価格"}
         </button>
-
         <div id="priceForm"></div>
-
         <hr>
-
         <h3>登録された価格</h3>
-
         <div id="priceList">
             <p>まだ登録されていません。</p>
         </div>
     `;
 
-    document
-        .getElementById("btnBack")
-        .addEventListener("click", showSettings);
-
-    document
-        .getElementById("btnTogglePriceForm")
-        .addEventListener("click", togglePriceForm);
+    document.getElementById("btnBack").addEventListener("click", showSettings);
+    document.getElementById("btnTogglePriceForm").addEventListener("click", togglePriceForm);
 
     if (priceFormVisible) {
-
         document.getElementById("priceForm").innerHTML = `
-
             <br>
-
             <label>日付</label><br>
-
             <input type="date" id="priceDate"><br><br>
 
             <h3>📦4kg</h3>
-
             M<br>
             <input type="number" id="price4kgM"><br><br>
-
             ○M<br>
             <input type="number" id="price4kgOM"><br><br>
-
             S<br>
             <input type="number" id="price4kgS"><br><br>
-
             2S<br>
             <input type="number" id="price4kg2S"><br><br>
-
             C<br>
             <input type="number" id="price4kgC"><br><br>
 
             <hr>
-
             <h3>📦2kg</h3>
-
             M<br>
             <input type="number" id="price2kgM"><br><br>
-
             ○M<br>
             <input type="number" id="price2kgOM"><br><br>
-
             S<br>
             <input type="number" id="price2kgS"><br><br>
-
             B<br>
             <input type="number" id="price2kgB"><br><br>
 
             <hr>
-
             <h3>🛍袋</h3>
-
             袋<br>
             <input type="number" id="priceBag"><br><br>
 
             <button id="btnSavePrice">
                 ${editingPriceIndex === -1 ? "保存" : "更新"}
             </button>
-
         `;
 
-        document
-            .getElementById("btnSavePrice")
-            .addEventListener("click", savePrice);
+        document.getElementById("btnSavePrice").addEventListener("click", savePrice);
 
         if (editingPriceIndex !== -1) {
-
-            // editPrice()で値をセット
-            if (editingPriceIndex !== -1) {
-
-    setPriceForm(
-        priceMaster[editingPriceIndex]
-    );
-
-}
-
+            setPriceForm(priceMaster[editingPriceIndex]);
         }
-
     }
-
     renderPriceList();
-
 }
-// ------------------------
-// 価格を保存
-// ------------------------
+
 function savePrice() {
-
     const items = [];
-const date = document.getElementById("priceDate").value;
+    const date = document.getElementById("priceDate").value;
 
-if (!date) {
-
-    alert("日付を入力してください。");
-
-    return;
-
-}
-    // 価格を追加
-    function addPrice(weight, grade, value) {
-
-        value = Number(value);
-
-        if (!value || value <= 0) {
-            return;
-        }
-
-        items.push({
-            weight,
-            grade,
-            price: value
-        });
-
+    if (!date) {
+        alert("日付を入力してください。");
+        return;
     }
 
-    // 4kg
+    function addPrice(weight, grade, value) {
+        value = Number(value);
+        if (!value || value <= 0) return;
+        items.push({ weight, grade, price: value });
+    }
+
     addPrice("4kg", "M", document.getElementById("price4kgM").value);
     addPrice("4kg", "○M", document.getElementById("price4kgOM").value);
     addPrice("4kg", "S", document.getElementById("price4kgS").value);
     addPrice("4kg", "2S", document.getElementById("price4kg2S").value);
     addPrice("4kg", "C", document.getElementById("price4kgC").value);
 
-    // 2kg
     addPrice("2kg", "M", document.getElementById("price2kgM").value);
     addPrice("2kg", "○M", document.getElementById("price2kgOM").value);
     addPrice("2kg", "S", document.getElementById("price2kgS").value);
     addPrice("2kg", "B", document.getElementById("price2kgB").value);
 
-    // 袋
     addPrice("袋", "", document.getElementById("priceBag").value);
 
-    const price = {
+    const price = { date: date, items };
 
-        date: date,
+    const sameDateIndex = priceMaster.findIndex(item => item.date === price.date);
 
-        items
-
-    };
-
-    // 同じ日付があるか検索
-    const sameDateIndex = priceMaster.findIndex(
-        item => item.date === price.date
-    );
-
-    // 編集
     if (editingPriceIndex !== -1) {
-
         priceMaster[editingPriceIndex] = price;
         editingPriceIndex = -1;
-
-    // 同じ日付なら上書き
     } else if (sameDateIndex !== -1) {
-
         priceMaster[sameDateIndex] = price;
-
-    // 新規追加
     } else {
-
         priceMaster.push(price);
-
     }
 
-    // 日付の新しい順に並び替え
-    priceMaster.sort((a, b) =>
-        b.date.localeCompare(a.date)
-    );
+    priceMaster.sort((a, b) => b.date.localeCompare(a.date));
 
     savePriceMaster();
-openedPriceIndex = -1;
-editingPriceIndex = -1;
+    openedPriceIndex = -1;
+    editingPriceIndex = -1;
     priceFormVisible = false;
 
     renderPriceMaster();
-
 }
 
-
-// ------------------------
-// 価格一覧を表示
-// ------------------------
 function renderPriceList() {
-
-    const list =
-        document.getElementById("priceList");
+    const list = document.getElementById("priceList");
 
     if (priceMaster.length === 0) {
-
-        list.innerHTML = `
-            <p>まだ登録されていません。</p>
-        `;
-
+        list.innerHTML = `<p>まだ登録されていません。</p>`;
         return;
-
     }
 
     let html = "";
 
     priceMaster.forEach((price, index) => {
-
         html += `
-
             <div class="card">
-
                 <b>${price.date}</b>
-
                 <br><br>
-
-                <button
-                    onclick="togglePriceDetail(${index})">
-
-                    ${
-                        openedPriceIndex === index
-                            ? "▲ 閉じる"
-                            : "▼ 価格を見る"
-                    }
-
+                <button onclick="togglePriceDetail(${index})">
+                    ${openedPriceIndex === index ? "▲ 閉じる" : "▼ 価格を見る"}
                 </button>
-
         `;
 
         if (openedPriceIndex === index) {
-
-            html += `
-
-                <hr>
-
-                <b>📦4kg</b><br><br>
-
-            `;
-
+            html += `<hr><b>📦4kg</b><br><br>`;
             price.items
                 .filter(item => item.weight === "4kg")
                 .forEach(item => {
-
-                    html += `
-                        ${item.grade}：
-                        ${item.price.toLocaleString()}円<br>
-                    `;
-
+                    html += `${item.grade}：${item.price.toLocaleString()}円<br>`;
                 });
 
-            html += `
-
-                <br>
-
-                <b>📦2kg</b><br><br>
-
-            `;
-
+            html += `<br><b>📦2kg</b><br><br>`;
             price.items
                 .filter(item => item.weight === "2kg")
                 .forEach(item => {
-
-                    html += `
-                        ${item.grade}：
-                        ${item.price.toLocaleString()}円<br>
-                    `;
-
+                    html += `${item.grade}：${item.price.toLocaleString()}円<br>`;
                 });
 
-            html += `
-
-                <br>
-
-                <b>🛍袋</b><br><br>
-
-            `;
-
+            html += `<br><b>🛍袋</b><br><br>`;
             price.items
                 .filter(item => item.weight === "袋")
                 .forEach(item => {
-
-                    html += `
-                        袋：
-                        ${item.price.toLocaleString()}円<br>
-                    `;
-
+                    html += `袋：${item.price.toLocaleString()}円<br>`;
                 });
 
             html += `<hr>`;
-
         }
 
         html += `
-
-                <button
-                    onclick="editPrice(${index})">
-
-                    編集
-
-                </button>
-
-                <button
-                    onclick="deletePrice(${index})">
-
-                    削除
-
-                </button>
-
+                <button onclick="editPrice(${index})">編集</button>
+                <button onclick="deletePrice(${index})">削除</button>
             </div>
-
         `;
-
     });
 
     list.innerHTML = html;
-
 }
-// ------------------------
-// 価格詳細を開閉
-// ------------------------
+
 function togglePriceDetail(index) {
-
     if (openedPriceIndex === index) {
-
         openedPriceIndex = -1;
-
     } else {
-
         openedPriceIndex = index;
-
     }
-
     renderPriceList();
-
 }
-// ------------------------
-// 価格入力フォームへ値をセット
-// ------------------------
+
 function setPriceForm(price) {
+    document.getElementById("priceDate").value = price.date;
 
-    document.getElementById("priceDate").value =
-        price.date;
-
-    // 一度空にする
     document.getElementById("price4kgM").value = "";
     document.getElementById("price4kgOM").value = "";
     document.getElementById("price4kgS").value = "";
@@ -1024,116 +831,52 @@ function setPriceForm(price) {
 
     document.getElementById("priceBag").value = "";
 
-    // 価格をセット
     price.items.forEach(item => {
-
         if (item.weight === "4kg") {
-
-            if (item.grade === "M") {
-                document.getElementById("price4kgM").value = item.price;
-            }
-
-            if (item.grade === "○M") {
-                document.getElementById("price4kgOM").value = item.price;
-            }
-
-            if (item.grade === "S") {
-                document.getElementById("price4kgS").value = item.price;
-            }
-
-            if (item.grade === "2S") {
-                document.getElementById("price4kg2S").value = item.price;
-            }
-
-            if (item.grade === "C") {
-                document.getElementById("price4kgC").value = item.price;
-            }
-
+            if (item.grade === "M") document.getElementById("price4kgM").value = item.price;
+            if (item.grade === "○M") document.getElementById("price4kgOM").value = item.price;
+            if (item.grade === "S") document.getElementById("price4kgS").value = item.price;
+            if (item.grade === "2S") document.getElementById("price4kg2S").value = item.price;
+            if (item.grade === "C") document.getElementById("price4kgC").value = item.price;
         }
 
         if (item.weight === "2kg") {
-
-            if (item.grade === "M") {
-                document.getElementById("price2kgM").value = item.price;
-            }
-
-            if (item.grade === "○M") {
-                document.getElementById("price2kgOM").value = item.price;
-            }
-
-            if (item.grade === "S") {
-                document.getElementById("price2kgS").value = item.price;
-            }
-
-            if (item.grade === "B") {
-                document.getElementById("price2kgB").value = item.price;
-            }
-
+            if (item.grade === "M") document.getElementById("price2kgM").value = item.price;
+            if (item.grade === "○M") document.getElementById("price2kgOM").value = item.price;
+            if (item.grade === "S") document.getElementById("price2kgS").value = item.price;
+            if (item.grade === "B") document.getElementById("price2kgB").value = item.price;
         }
 
         if (item.weight === "袋") {
-
-            document.getElementById("priceBag").value =
-                item.price;
-
+            document.getElementById("priceBag").value = item.price;
         }
-
     });
-
 }
-// ------------------------
-// 価格を編集
-// ------------------------
+
 function editPrice(index) {
-
     editingPriceIndex = index;
-
     priceFormVisible = true;
-
     renderPriceMaster();
-
 }
-// ------------------------
-// 価格を削除
-// ------------------------
+
 function deletePrice(index) {
-
-    if (!confirm("この価格を削除しますか？")) {
-
-        return;
-
-    }
-
+    if (!confirm("この価格を削除しますか？")) return;
     priceMaster.splice(index, 1);
-
     savePriceMaster();
 
     if (editingPriceIndex === index) {
-
         editingPriceIndex = -1;
-
         priceFormVisible = false;
-
     }
 
     openedPriceIndex = -1;
-
     renderPriceMaster();
-
 }
-// ------------------------
-// 価格入力フォーム開閉
-// ------------------------
+
 function togglePriceForm() {
-
     priceFormVisible = !priceFormVisible;
-
     if (!priceFormVisible) {
-
         editingPriceIndex = -1;
-
     }
-
     renderPriceMaster();
-
 }

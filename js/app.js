@@ -3304,6 +3304,9 @@ console.log(materialSummary);
  * @param {String|Number} selectedFieldNo - 検索画面で選択されている田んぼ番号（「すべて」の場合は空文字やnull）
  * @returns {Object} 集計結果オブジェクト
  */
+/**
+ * フィルターされたレコードから、指定された田んぼの分だけを正確に集計する
+ */
 function calculateHistorySummary(filteredRecords, selectedFieldNo = "") {
     const materialSummary = {}; 
     let totalN = 0;
@@ -3311,85 +3314,103 @@ function calculateHistorySummary(filteredRecords, selectedFieldNo = "") {
     let totalK = 0;
     let totalCost = 0;
 
-    // 検索条件の田んぼ番号を文字列に統一（型違いによる不一致を防ぐ）
     const targetFieldNo = selectedFieldNo ? String(selectedFieldNo).trim() : "";
 
-    // 1. 各レコードをループ
     filteredRecords.forEach(record => {
         if (!record.fields || !Array.isArray(record.fields)) return;
 
-        // 🌟 葉面散布の場合の重複集計を防ぐフラグ
-        const isFoliar = (record.work === "葉面散布");
-        let foliarCounted = false; // この作業ですでにタンク分の資材を加算したか
+        // 田んぼ絞り込み判定
+        if (targetFieldNo !== "") {
+            const hasTarget = record.fields.some(f => String(f.fieldNo).trim() === targetFieldNo);
+            if (!hasTarget) return;
+        }
 
-        // 2. レコード内の各田んぼをループ
-        record.fields.forEach(field => {
-            
-            // 【重要】田んぼの絞り込み条件がある場合、一致しない田んぼのデータはスキップする
-            if (targetFieldNo !== "") {
-                const currentFieldNo = field.fieldNo ? String(field.fieldNo).trim() : "";
-                if (currentFieldNo !== targetFieldNo) {
-                    return; // この田んぼの資材は集計に入れない
-                }
-            }
+        const isTankWork = (record.work === "葉面散布" || record.work === "除草");
 
-            // 🌟 葉面散布かつ、この作業で既にタンク投入量を集計済みの場合はスキップ
-            if (isFoliar && foliarCounted) {
-                return;
-            }
+        // タンク作業（葉面散布・除草）は1回の作業につき資材リストを1回だけ集計（重複防止）
+        let fieldsToCalculate = isTankWork 
+            ? [record.fields[0]] 
+            : (targetFieldNo !== "" ? record.fields.filter(f => String(f.fieldNo).trim() === targetFieldNo) : record.fields);
 
-            if (!field.materials || !Array.isArray(field.materials)) return;
+        fieldsToCalculate.forEach(field => {
+            if (!field || !field.materials || !Array.isArray(field.materials)) return;
 
-            // 3. 各資材をループ
             field.materials.forEach(mat => {
                 const name = mat.material;
                 if (!name || name === "選択してください") return;
 
-                // 数量の取得
-                const amount = parseFloat(mat.amount) || parseFloat(mat.bags) || 0; 
-                if (amount === 0) return;
+                let rawAmount = parseFloat(mat.amount) || parseFloat(mat.bags) || 0; 
+                if (rawAmount === 0) return;
 
-                // 資材マスタ (materialMaster) から最新情報を取得
                 const master = materialMaster.find(m => m.name === name);
                 const price = master ? parseFloat(master.price) || 0 : 0;
-                const weight = master ? parseFloat(master.weight) || 0 : 0;
-                const unit = master ? master.unit : (mat.unit || "袋");
+                
+                const rawWeight = master ? parseFloat(master.weight) || 0 : 0;
+                const weightUnit = master ? (master.weightUnit || "kg").toLowerCase() : "kg";
 
-                // コスト計算
-                const cost = amount * price;
+                let unit = master ? master.unit : (mat.unit || "袋");
+                let displayAmount = 0;
 
-                // 資材別の数量・金額・単位を集計
+                // 🌟 作業種別で計算を完全に切り分ける
+                if (isTankWork) {
+                    // 【葉面散布・除草】タンク投入量(mL) ÷ マスター内容量(mL) ＝ 本数
+                    let capacityInMl = rawWeight;
+                    if (weightUnit === "kg" || weightUnit === "l") {
+                        capacityInMl = rawWeight * 1000;
+                    }
+
+                    if (capacityInMl > 0) {
+                        let amountMl = rawAmount;
+                        // 0.2 などの L 単位で入っている場合は mL に換算
+                        if (rawAmount < 1 || mat.unit === "L" || mat.unit === "l") {
+                            amountMl = rawAmount * 1000;
+                        }
+                        displayAmount = amountMl / capacityInMl;
+                        unit = master.unit || "本";
+                    } else {
+                        displayAmount = rawAmount;
+                    }
+                } else {
+                    // 【通常作業（元肥・追肥等）】保存されている数値（袋数など）をそのまま使う
+                    displayAmount = rawAmount;
+                }
+
+                const cost = displayAmount * price;
+
                 if (!materialSummary[name]) {
                     materialSummary[name] = { amount: 0, cost: 0, unit: unit };
                 }
-                materialSummary[name].amount += amount;
+                materialSummary[name].amount += displayAmount;
                 materialSummary[name].cost += cost;
 
-                // 総コストに加算
                 totalCost += cost;
 
-                // 三要素（N・P・K）の計算
+                // 三要素（N・P・K）計算
                 if (master) {
-                    const totalKg = amount * weight;
+                    // 1袋（1本）あたりのkg数 × 使用数（袋数/本数）＝ 合計kg
+                    const weightInKg = (weightUnit === "g" || weightUnit === "ml") ? rawWeight / 1000 : rawWeight;
+                    const totalKg = displayAmount * weightInKg; 
+                    
                     totalN += totalKg * (parseFloat(master.n) || 0) / 100;
                     totalP += totalKg * (parseFloat(master.p) || 0) / 100;
                     totalK += totalKg * (parseFloat(master.k) || 0) / 100;
                 }
             });
-
-            // 🌟 葉面散布の場合、1圃場分（＝タンク投入量）を集計したらフラグを立てる
-            if (isFoliar) {
-                foliarCounted = true;
-            }
         });
+    });
+
+    // 四捨五入・丸め処理
+    Object.keys(materialSummary).forEach(name => {
+        materialSummary[name].amount = Math.round(materialSummary[name].amount * 100) / 100;
+        materialSummary[name].cost = Math.round(materialSummary[name].cost);
     });
 
     return {
         materialSummary: materialSummary,
-        totalN: totalN,
-        totalP: totalP,
-        totalK: totalK,
-        totalCost: totalCost
+        totalN: Math.round(totalN * 10) / 10,
+        totalP: Math.round(totalP * 10) / 10,
+        totalK: Math.round(totalK * 10) / 10,
+        totalCost: Math.round(totalCost)
     };
 }
 
@@ -3432,45 +3453,44 @@ function saveFoliarRecord() {
 
     // 2. タンク容量の取得
     const tankSelect = document.getElementById("foliarTank");
-    const tankSize = tankSelect ? tankSelect.value + "L" : "未設定";
+    const tankVolumeL = tankSelect ? Number(tankSelect.value) : 0; // 例: 200 (L)
+    const tankSizeStr = tankSelect ? tankSelect.value + "L" : "未設定";
 
-    // 3. 資材データの取得
-    // メイン行の資材情報を取得
+    // 3. 資材データの取得（メイン行）
     const mainMaterialSelect = document.getElementById("sprayMaterial");
     const mainDilutionSelect = document.getElementById("sprayDilution");
-    const mainAmountSpan = document.getElementById("mainSprayAmount");
 
     const materials = [];
 
-    // メインの入力欄に選択がある場合
     if (mainMaterialSelect && mainMaterialSelect.value !== "") {
+        const matIndex = Number(mainMaterialSelect.value);
+        const matMaster = materialMaster[matIndex];
+        const dilution = Number(mainDilutionSelect.value);
 
-    const matIndex = Number(mainMaterialSelect.value);
-    const matMaster = materialMaster[matIndex];
+        if (matMaster && dilution > 0) {
+            // タンク容量(L) ÷ 倍率 × 1000 ＝ 使用量(mL)
+            // 例: 200L ÷ 1000倍 × 1000 = 200 mL
+            const amountMl = (tankVolumeL / dilution) * 1000;
 
-    const dilution = Number(mainDilutionSelect.value);
-    const tankVolume = Number(tankSelect.value);
-
-    if (matMaster && dilution > 0) {
-        materials.push({
-            material: matMaster.name,
-            amount: tankVolume / dilution,
-            unit: matMaster.unit || "L"
-        });
+            materials.push({
+                material: matMaster.name,
+                amount: amountMl,
+                unit: "mL"
+            });
+        }
     }
-}
 
-    // 動的に追加されたリスト（sprayMaterials）がある場合の取得処理
+    // 動的に追加されたリスト（sprayMaterials）がある場合
     if (typeof sprayMaterials !== "undefined" && sprayMaterials.length > 0) {
         sprayMaterials.forEach(item => {
             const matMaster = materialMaster[item.materialIndex];
             if (matMaster) {
-                // 計算結果テキストの取得ロジック（環境に合わせて調整してください）
+                // item.amount に入っているmL値（または倍率からの再計算値）
                 materials.push({
-    material: matMaster.name,
-    amount: item.amount || 0,
-    unit: matMaster.unit || "L"
-});
+                    material: matMaster.name,
+                    amount: item.amount || 0,
+                    unit: "mL"
+                });
             }
         });
     }
@@ -3480,28 +3500,29 @@ function saveFoliarRecord() {
         return;
     }
 
-    // 4. アプリ共通の recordList 構造に合わせてオブジェクトを作成
-    // 元肥や追肥と同様に、選択された複数の田んぼ（fields配列）を一挙に格納します
+    // 4. 日付取得バグの修正 ＆ レコード生成
+    const dateInput = document.getElementById("recordDate");
+    const inputDate = (dateInput && dateInput.value) ? dateInput.value : getToday();
+
     const record = {
-        date: recordDate || getToday(),
+        date: inputDate,
         work: "葉面散布",
-        memo: `タンク容量: ${tankSize}`,
+        memo: `タンク容量: ${tankSizeStr}`,
         fields: []
     };
 
     selectedFieldIds.forEach(fieldNo => {
-    record.fields.push({
-        fieldNo: Number(fieldNo),
-        materials: materials.map(m => ({
-            material: m.material,
-            amount: m.amount,
-            unit: m.unit
-        }))
+        record.fields.push({
+            fieldNo: Number(fieldNo),
+            materials: materials.map(m => ({
+                material: m.material,
+                amount: m.amount,
+                unit: m.unit
+            }))
+        });
     });
-});
-console.log(materials);
-console.log(record);
-    // 5. グローバル配列へ追加し、既存の永続化関数を実行
+
+    // 5. グローバル配列へ追加と保存
     recordList.push(record);
     if (typeof saveRecordList === "function") {
         saveRecordList();
@@ -3516,11 +3537,12 @@ console.log(record);
     }
     
     if (typeof showHistory === "function") {
-        showHistory(); // 履歴画面へ遷移して結果を確認
+        showHistory();
     } else {
         showInput();
     }
 }
+
 /**
  * 葉面散布画面用の田んぼ選択ボタンを動的に生成する
  */
@@ -3623,6 +3645,7 @@ function createNormalDetailHtml(record) {
         .join("<hr>");
 }
 
+
 // ------------------------
 // 葉面散布・除草 履歴詳細HTML生成
 // ------------------------
@@ -3645,25 +3668,27 @@ function createSprayDetailHtml(record) {
             const master = materialMaster.find(
                 m => m.name === material.material
             );
-            const unit = master ? master.unit : "";
 
             if (!materials.some(m => m.name === material.material)) {
                 materials.push({
                     name: material.material,
                     amount: material.amount,
-                    unit: material.unit || unit
+                    unit: material.unit || "mL"
                 });
             }
         });
     });
 
+    // カード表示用：mLで入っている数値を表示（1000mL以上はL換算）
     const materialHtml = materials.map(m => {
         let amount = Number(m.amount);
         let unit = m.unit;
 
-        if (unit === "L" && amount < 1) {
-            amount *= 1000;
-            unit = "mL";
+        if (unit === "mL" && amount >= 1000) {
+            amount = (amount / 1000).toFixed(1);
+            unit = "L";
+        } else if (unit === "mL") {
+            amount = Math.round(amount); // 小数点を丸めて「200mL」のように表示
         }
 
         return `${m.name}　${amount}${unit}`;
