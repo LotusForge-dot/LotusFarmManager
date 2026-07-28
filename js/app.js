@@ -2824,26 +2824,7 @@ function changeEditBags(fieldIndex, materialIndex, value) {
 
 }
 
-// ------------------------
-// 追肥編集保存
-// ------------------------
-function saveTopFertilizerEdit() {
 
-    const record =
-        recordList[editingRecordIndex];
-
-    // 作業日
-    record.date =
-        document.getElementById("editRecordDate").value;
-
-    // 編集内容
-    record.fields = editFields;
-
-    saveData();
-
-    showRecord();
-
-}
 
 // ------------------------
 // 追肥編集保存
@@ -3337,6 +3318,10 @@ function calculateHistorySummary(filteredRecords, selectedFieldNo = "") {
     filteredRecords.forEach(record => {
         if (!record.fields || !Array.isArray(record.fields)) return;
 
+        // 🌟 葉面散布の場合の重複集計を防ぐフラグ
+        const isFoliar = (record.work === "葉面散布");
+        let foliarCounted = false; // この作業ですでにタンク分の資材を加算したか
+
         // 2. レコード内の各田んぼをループ
         record.fields.forEach(field => {
             
@@ -3346,6 +3331,11 @@ function calculateHistorySummary(filteredRecords, selectedFieldNo = "") {
                 if (currentFieldNo !== targetFieldNo) {
                     return; // この田んぼの資材は集計に入れない
                 }
+            }
+
+            // 🌟 葉面散布かつ、この作業で既にタンク投入量を集計済みの場合はスキップ
+            if (isFoliar && foliarCounted) {
+                return;
             }
 
             if (!field.materials || !Array.isArray(field.materials)) return;
@@ -3386,6 +3376,11 @@ function calculateHistorySummary(filteredRecords, selectedFieldNo = "") {
                     totalK += totalKg * (parseFloat(master.k) || 0) / 100;
                 }
             });
+
+            // 🌟 葉面散布の場合、1圃場分（＝タンク投入量）を集計したらフラグを立てる
+            if (isFoliar) {
+                foliarCounted = true;
+            }
         });
     });
 
@@ -3424,64 +3419,6 @@ function addSprayMaterial() {
  * 葉面散布の入力内容をローカルストレージに保存する
  */
 
-/**
- * 葉面散布画面用の田んぼ選択ボタンを動的に生成する
- */
-function initFoliarFieldButtons() {
-    const container = document.getElementById("foliarFieldButtonsContainer");
-    if (!container) return;
-
-    container.innerHTML = "";
-    // 葉面散布を開いた時は一旦選択状態をクリア
-    selectedFieldIds = [];
-
-    if (!fieldMaster || fieldMaster.length === 0) {
-        container.innerHTML = `<span style="color: #888; font-size: 14px;">※設定画面で田んぼを登録してください</span>`;
-        return;
-    }
-
-    fieldMaster.forEach(field => {
-        const btn = document.createElement("div");
-        btn.className = "foliar-field-btn";
-        btn.dataset.id = String(field.no);
-        btn.textContent = `☐ ${field.no} ${field.owner}`;
-
-        // アプリ全体のデザインに合わせた枠線スタイル
-        btn.style.padding = "8px 12px";
-        btn.style.border = "1px solid #333";
-        btn.style.borderRadius = "4px";
-        btn.style.backgroundColor = "#fff";
-        btn.style.color = "#000";
-        btn.style.cursor = "pointer";
-        btn.style.fontSize = "15px";
-        btn.style.userSelect = "none";
-        btn.style.transition = "all 0.1s";
-
-        btn.addEventListener("click", function() {
-            const fieldId = btn.dataset.id;
-            const index = selectedFieldIds.indexOf(fieldId);
-
-            if (index >= 0) {
-                // 選択解除
-                selectedFieldIds.splice(index, 1);
-                btn.style.backgroundColor = "#fff";
-                btn.style.color = "#000";
-                btn.style.border = "1px solid #333";
-                btn.textContent = `☐ ${field.no} ${field.owner}`;
-            } else {
-                // 選択 (肥料の追肥アクティブ時の緑色 #2e7d32 に統一)
-                selectedFieldIds.push(fieldId);
-                btn.style.backgroundColor = "#2e7d32";
-                btn.style.color = "#fff";
-                btn.style.border = "1px solid #2e7d32";
-                btn.textContent = `☑ ${field.no} ${field.owner}`;
-            }
-            console.log("選択中の田んぼID:", selectedFieldIds);
-        });
-
-        container.appendChild(btn);
-    });
-}
 
 /**
  * 葉面散布の入力内容をアプリ共通のrecordListへ一括保存する
@@ -3643,95 +3580,7 @@ function initFoliarFieldButtons() {
     });
 }
 
-/**
- * 葉面散布の入力内容をアプリ共通のrecordListへ一括保存する
- */
-function saveFoliarRecord() {
-    // 1. 田んぼの選択チェック
-    if (selectedFieldIds.length === 0) {
-        alert("散布する田んぼを少なくとも1つ選択してください。");
-        return;
-    }
 
-    // 2. タンク容量の取得
-    const tankSelect = document.getElementById("foliarTank");
-    const tankSize = tankSelect ? tankSelect.value + "L" : "未設定";
-
-    // 3. 資材データの取得
-    const mainMaterialSelect = document.getElementById("sprayMaterial");
-    const mainDilutionSelect = document.getElementById("sprayDilution");
-    const mainAmountSpan = document.getElementById("mainSprayAmount");
-
-    const materials = [];
-
-    // メインの入力欄に選択がある場合
-    if (mainMaterialSelect && mainMaterialSelect.value !== "") {
-        const matIndex = Number(mainMaterialSelect.value);
-        const matMaster = materialMaster[matIndex];
-
-        if (matMaster) {
-            materials.push({
-                material: matMaster.name,
-                amount: parseFloat(mainAmountSpan.dataset.amount)
-            });
-        }
-    }
-
-    // 動的に追加されたリスト
-    if (typeof sprayMaterials !== "undefined" && sprayMaterials.length > 0) {
-        sprayMaterials.forEach(item => {
-            const matMaster = materialMaster[item.materialIndex];
-
-            if (matMaster) {
-                materials.push({
-                    material: matMaster.name,
-                    amount: item.amount   // ←変更
-                });
-            }
-        });
-    }
-
-    if (materials.length === 0) {
-        alert("資材を1つ以上選択・追加してください。");
-        return;
-    }
-
-    const record = {
-    date: document.getElementById("recordDate").value,
-    work: "葉面散布",
-    memo: `タンク容量: ${tankSize}`,
-    fields: []
-};
-    selectedFieldIds.forEach(fieldNo => {
-        record.fields.push({
-            fieldNo: Number(fieldNo),
-            materials: materials.map(m => ({
-                material: m.material,
-                amount: m.amount
-            }))
-        });
-    });
-
-    recordList.push(record);
-
-    if (typeof saveRecordList === "function") {
-        saveRecordList();
-    }
-
-    alert("葉面散布の記録を保存しました！");
-
-    selectedFieldIds = [];
-
-    if (typeof sprayMaterials !== "undefined") {
-        sprayMaterials = [];
-    }
-
-    if (typeof showHistory === "function") {
-        showHistory();
-    } else {
-        showInput();
-    }
-}
 
 function createNormalDetailHtml(record) {
     // 現在履歴検索で選択されている田んぼのNoを取得
