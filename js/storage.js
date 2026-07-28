@@ -161,37 +161,34 @@ function exportBackup() {
 }
 
 // ユーザーが選択したJSONのバックアップファイルを解析し、データをアプリ内にインポート復元
+
 function importBackup() {
-
     const input = document.createElement("input");
-
     input.type = "file";
     input.accept = ".json";
 
     input.addEventListener("change", function () {
-
         const file = input.files[0];
-
         if (!file) return;
 
         const reader = new FileReader();
 
         reader.onload = function (e) {
+            const backupData = JSON.parse(e.target.result);
 
-            const backupData =
-                JSON.parse(e.target.result);
-
-            // データ展開（各項目が存在しない場合は空配列セーフティ）
+            // データ展開
             fieldMaster = backupData.fieldMaster || [];
             workMaster = backupData.workMaster || [];
-            materialMaster = backupData.materialMaster || [];
+            materialMaster = backupData.materialMaster || []; // ← ここに stock も含まれて復元されます
             recordList = backupData.recordList || [];
             fertilizerPlanList = backupData.fertilizerPlanList || [];
-　　　templateMaster = backupData.templateMaster || [];
-　　　shipmentRecords = backupData.shipmentRecords || [];
-             priceMaster = backup.priceMaster || [];
+            templateMaster = backupData.templateMaster || [];
+            shipmentRecords = backupData.shipmentRecords || [];
+            
+            // 修正箇所： backup.priceMaster -> backupData.priceMaster
+            priceMaster = backupData.priceMaster || [];
 
-            // すべての内部データをストレージへ即時反映
+            // ストレージへ即時保存
             saveFieldMaster();
             saveWorkMaster();
             saveMaterialMaster();
@@ -199,21 +196,20 @@ function importBackup() {
             saveFertilizerPlanList();
             saveTemplateMaster();
             savePriceMaster();
+            
             window.editShipmentIndex = null;
-shipmentItems = [];
+            shipmentItems = [];
             alert("復元しました。");
 
             showMenu();
-
         };
 
         reader.readAsText(file);
-
     });
 
     input.click();
-
 }
+
 
 // タイムスタンプ（日時）付きのファイル名で、全データをまとめて保存・出力するエクスポート処理
 function exportBackupHistory() {
