@@ -365,7 +365,53 @@ flex-end; gap: 8px; margin-top: 12px; }
     text-align:right;
     font-weight:bold;
 }
+/* ========================================
+   資材集計
+======================================== */
 
+/* カード全体（クリック可能） */
+.material-card {
+
+    cursor: pointer;
+
+}
+
+/* ヘッダー */
+.material-summary-header {
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin-bottom: 8px;
+
+}
+
+/* 単価・金額 */
+.material-summary-price {
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin-top: 6px;
+
+}
+
+/* 展開した内訳 */
+.material-detail-row {
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin-top: 6px;
+
+    padding: 6px 0 6px 16px;
+
+    border-top: 1px dashed #ddd;
+
+}
 
 
 

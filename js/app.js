@@ -13,7 +13,7 @@ let planMaterials = [];
 
 let editingRecordIndex = -1; // 編集中のレコードインデックス（-1は新規登録）
 let recordDate = getToday();
-
+let fertilizerTab = "design";
 // ------------------------
 // 入力画面
 // ------------------------
@@ -40,7 +40,10 @@ let topFertilizerList = [];
 // 編集画面用データ
 let editFields = [];
 
-
+// ------------------------
+// 展開中の資材
+// ------------------------
+let openedMaterials = [];
 // ------------------------
 // 選択中の追肥作業
 // ------------------------
@@ -1066,57 +1069,116 @@ function showFertilizerPlan() {
 
         <h2>🌱施肥設計</h2>
 
-        <label>年</label>
+        <div class="tab-container">
 
-        <select id="planYear"></select>
+            <button
+                class="${
+                    fertilizerTab === "design"
+                        ? "tab-button active"
+                        : "tab-button"
+                }"
+                onclick="changeFertilizerTab('design')">
 
-        <label>田んぼ</label>
+                🌱 設計
 
-        <select id="planField"></select>
+            </button>
 
-<br><br>
-<label>テンプレート</label>
-<br>
-<select id="commonTemplateSelect"></select>
-<button onclick=" loadTemplateSelect()">
-📂読込
-</button>
-<button onclick="deleteCommonTemplate()">
-🗑
-</button>
-<br>
-<button onclick="saveTemplate({ type: 'standard' })">
-🌱標準化
-</button>
+            <button
+                class="${
+                    fertilizerTab === "summary"
+                        ? "tab-button active"
+                        : "tab-button"
+                }"
+                onclick="changeFertilizerTab('summary')">
 
-<button onclick="saveCommonTemplate()">
-💾共通保存
-</button>
+                📦 集計
 
+            </button>
+
+        </div>
 
         <hr>
 
-        <div id="planArea"></div>
+        <div id="planContent"></div>
 
     `;
 
-    renderPlanYearOptions();
-    renderPlanFieldOptions();
-    renderPlanArea();
-    renderTemplateSelect();
+    if (fertilizerTab === "design") {
 
-    // 年、田んぼが変更されたら該当の施肥設計をロード
-    document
-    .getElementById("planYear")
-    .addEventListener("change", loadFertilizerPlan);
+        document.getElementById("planContent").innerHTML = `
 
-    document
-    .getElementById("planField")
-    .addEventListener("change", loadFertilizerPlan);
+            <label>年</label>
 
-    loadFertilizerPlan();
+            <select id="planYear"></select>
+
+            <label>田んぼ</label>
+
+            <select id="planField"></select>
+
+            <br><br>
+
+            <label>テンプレート</label>
+
+            <br>
+
+            <select id="commonTemplateSelect"></select>
+
+            <button onclick="loadTemplateSelect()">
+                📂読込
+            </button>
+
+            <button onclick="deleteCommonTemplate()">
+                🗑
+            </button>
+
+            <br>
+
+            <button onclick="saveTemplate({ type: 'standard' })">
+                🌱標準化
+            </button>
+
+            <button onclick="saveCommonTemplate()">
+                💾共通保存
+            </button>
+
+            <hr>
+
+            <div id="planArea"></div>
+
+        `;
+
+        renderPlanYearOptions();
+        renderPlanFieldOptions();
+        renderPlanArea();
+        renderTemplateSelect();
+
+        document
+            .getElementById("planYear")
+            .addEventListener("change", loadFertilizerPlan);
+
+        document
+            .getElementById("planField")
+            .addEventListener("change", loadFertilizerPlan);
+
+        loadFertilizerPlan();
+
+    } else {
+
+        renderFertilizerSummary();
+
+    }
+
 }
+//========================================
+// タブ切り換え
+//========================================
+function changeFertilizerTab(tab) {
 
+    fertilizerTab = tab;
+
+    showFertilizerPlan();
+
+}
 //========================================
 // 施肥設計データ取得
 //========================================
@@ -3914,5 +3976,365 @@ function changeHistoryTab(tab) {
     historyTab = tab;
 
     showHistory();
+
+}
+
+// ------------------------
+// 資材集計画面
+// ------------------------
+function renderFertilizerSummary() {
+
+    const content =
+        document.getElementById("planContent");
+
+    content.innerHTML = `
+
+        <h3>📦 資材集計</h3>
+
+        <label>対象年</label>
+
+        <select id="summaryYear"></select>
+
+        <br><br>
+
+        <div id="fertilizerSummaryList">
+
+            <div class="card">
+
+                集計中...
+
+            </div>
+
+        </div>
+
+    `;
+
+    // 年プルダウンを作成
+    renderSummaryYearOptions();
+
+    // 年変更時に再集計
+    document
+        .getElementById("summaryYear")
+        .addEventListener(
+            "change",
+            renderFertilizerSummaryList
+        );
+
+    // 初回表示
+    renderFertilizerSummaryList();
+
+}
+
+// ------------------------
+// 資材集計一覧表示
+// ------------------------
+function renderFertilizerSummaryList() {
+
+    const list =
+        document.getElementById(
+            "fertilizerSummaryList"
+        );
+
+    // 資材集計を取得
+    const summary =
+        getMaterialSummary();
+
+    // 資材未登録
+    if (Object.keys(summary).length === 0) {
+
+        list.innerHTML = `
+
+            <div class="card">
+
+                資材は登録されていません。
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+    let html = "";
+
+    // 合計資材費
+    let totalCost = 0;
+
+    // 資材マスタ登録順で表示
+    materialMaster.forEach(master => {
+
+        const material =
+            summary[master.name];
+
+        // 集計に無い資材はスキップ
+        if (!material) return;
+
+        // 単価
+        const price =
+            Number(master.price) || 0;
+
+        // 資材費
+        const cost =
+            material.quantity * price;
+
+        totalCost += cost;
+
+        // アイコン切替
+        const opened =
+    openedMaterials.includes(master.name);
+
+const icon =
+    opened ? "📂" : "📦";
+
+        html += `
+
+            <div
+                class="card material-card"
+                onclick="toggleMaterialDetail('${master.name}')"
+            >
+
+                <div class="material-summary-header">
+
+                    <b>
+
+                        ${icon} ${master.name}
+
+                    </b>
+
+                    <b>
+
+                        ${material.quantity}${material.unit}
+
+                    </b>
+
+                </div>
+
+                <div class="material-summary-price">
+
+                    <span>
+
+                        単価：
+                        ${price.toLocaleString()}円
+
+                    </span>
+
+                    <b>
+
+                        ${cost.toLocaleString()}円
+
+                    </b>
+
+                </div>
+
+                ${
+    opened
+        ? renderMaterialDetail(master.name)
+        : ""
+}
+
+            </div>
+
+        `;
+
+    });
+
+    // 合計資材費
+    html = `
+
+        <div class="card">
+
+            <h3>💴 合計資材費</h3>
+
+            <h2>
+
+                ${totalCost.toLocaleString()}円
+
+            </h2>
+
+        </div>
+
+    ` + html;
+
+    list.innerHTML = html;
+
+}
+// ------------------------
+// 資材集計
+// ------------------------
+function getMaterialSummary() {
+
+    // 資材ごとの合計
+    const summary = {};
+// 集計対象年
+// 集計対象年
+const year =
+    document.getElementById(
+        "summaryYear"
+    ).value;
+    // 全施肥設計をループ
+    fertilizerPlanList.forEach(plan => {
+// 年が違う施肥設計は集計しない
+    if (plan.year !== year) {
+
+        return;
+
+    }
+        // 資材一覧をループ
+        plan.materials.forEach(material => {
+
+            // 資材未選択はスキップ
+if (!material.material) return;
+const master =
+    materialMaster.find(m =>
+        m.name === material.material
+    );
+            // 数量未入力はスキップ
+            if (!material.amount) return;
+
+            // 初回のみ作成
+            if (!summary[material.material]) {
+
+                summary[material.material] = {
+
+                    // 合計数量
+                    quantity: 0,
+
+                    // 単位
+                    unit:
+    master ? master.unit : ""
+
+                };
+
+            }
+
+            // 数量加算
+            summary[material.material].quantity +=
+                Number(material.amount);
+
+        });
+
+    });
+
+    return summary;
+
+}
+// ------------------------
+// 集計年プルダウン
+// ------------------------
+function renderSummaryYearOptions() {
+
+    const select =
+        document.getElementById("summaryYear");
+
+    // 登録されている年を取得
+    const years = [
+    ...new Set(
+        fertilizerPlanList.map(
+            plan => plan.year
+        )
+    )
+].sort((a, b) => b - a);
+
+    select.innerHTML = "";
+
+    years.forEach(year => {
+
+        select.innerHTML += `
+
+            <option value="${year}">
+
+                ${year}
+
+            </option>
+
+        `;
+
+    });
+
+}
+// ------------------------
+// 資材内訳開閉
+// ------------------------
+function toggleMaterialDetail(name) {
+
+    const index =
+        openedMaterials.indexOf(name);
+
+    if (index >= 0) {
+
+        openedMaterials.splice(index, 1);
+
+    } else {
+
+        openedMaterials.push(name);
+
+    }
+
+    renderFertilizerSummaryList();
+
+}
+// ------------------------
+// 資材内訳生成
+// ------------------------
+function renderMaterialDetail(name) {
+
+    const year =
+        document.getElementById(
+            "summaryYear"
+        ).value;
+
+    let html = `
+
+        <hr>
+
+    `;
+
+    fertilizerPlanList.forEach(plan => {
+
+        // 対象年のみ
+        if (plan.year !== year) return;
+
+        let quantity = 0;
+
+        plan.materials.forEach(material => {
+
+            if (
+                material.material === name
+            ) {
+
+                quantity +=
+                    Number(material.amount);
+
+            }
+
+        });
+
+        // 使用していない田んぼは表示しない
+        if (quantity === 0) return;
+
+        html += `
+
+            <div class="material-detail-row">
+
+                <span>
+
+                    No.${plan.field}
+
+                </span>
+
+                <b>
+
+                    ${quantity}袋
+
+                </b>
+
+            </div>
+
+        `;
+
+    });
+
+    return html;
 
 }
