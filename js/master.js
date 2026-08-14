@@ -31,14 +31,22 @@ let materialDilutions = [];
 // カテゴリー
 // ========================================
 const MATERIAL_CATEGORIES = [
-    { value: "fertilizer", label: "肥料" },
-    { value: "variety", label: "品種" },
-    { value: "spray", label: "葉面散布" },
-    { value: "pesticide", label: "農薬" },
-    { value: "soil", label: "土壌改良材" },
-    { value: "other", label: "その他" }
-];
 
+    { value: "fertilizer", label: "肥料" },
+
+    { value: "variety", label: "品種" },
+
+    { value: "spray", label: "葉面散布" },
+
+    { value: "pesticide", label: "農薬" },
+
+    { value: "soil", label: "土壌改良材" },
+
+    { value: "shipment", label: "出荷資材" },
+
+    { value: "other", label: "その他" }
+
+];
 // 田んぼマスタ管理画面のレンダリング
 function renderFieldMaster() {
     app.innerHTML = `
@@ -166,43 +174,84 @@ function deleteField(index) {
 // ------------------------
 // 作業マスタ
 // ------------------------
+const WORK_CATEGORIES = [
+    { value: "fertilizer", label: "肥料" },
+    { value: "spray", label: "葉面散布" },
+    { value: "herbicide", label: "除草" },
+    { value: "planting", label: "植え付け" },
+    { value: "shipment", label: "出荷" },
+    { value: "other", label: "その他" }
+];
 function renderWorkMaster() {
     app.innerHTML = `
         <button id="btnBack">← 戻る</button>
         <h2 style="margin-top:20px;">🔧 作業マスタ</h2>
+
         <button id="btnToggleWorkForm">
             ${workFormVisible ? "－ 入力を閉じる" : "＋ 新しい作業"}
         </button>
+
         <div id="workForm"></div>
+
         <hr>
+
         <h3>登録された作業</h3>
+
         <div id="workList">
             <p>まだ登録されていません。</p>
         </div>
     `;
 
-    document.getElementById("btnBack").addEventListener("click", showSettings);
-    document.getElementById("btnToggleWorkForm").addEventListener("click", toggleWorkForm);
+    document.getElementById("btnBack")
+        .addEventListener("click", showSettings);
+
+    document.getElementById("btnToggleWorkForm")
+        .addEventListener("click", toggleWorkForm);
 
     if (workFormVisible) {
+
         document.getElementById("workForm").innerHTML = `
             <br>
+
             <label>作業名</label><br>
             <input type="text" id="workName"><br><br>
+
             <label>カテゴリー</label><br>
-            <select id="workCategory">
-                <option value="fertilizer">肥料</option>
-                <option value="spray">葉面散布</option>
-                <option value="weed">除草</option>
-                <option value="other">その他</option>
-            </select>
+            <select id="workCategory"></select>
+
             <br><br>
-            <button id="btnSaveWork">${editingWorkIndex === -1 ? "保存" : "更新"}</button>
+
+            <button id="btnSaveWork">
+                ${editingWorkIndex === -1 ? "保存" : "更新"}
+            </button>
         `;
-        document.getElementById("btnSaveWork").addEventListener("click", saveWork);
+
+        const categorySelect =
+            document.getElementById("workCategory");
+
+        categorySelect.innerHTML =
+            WORK_CATEGORIES.map(category =>
+                `<option value="${category.value}">${category.label}</option>`
+            ).join("");
+
+        if (editingWorkIndex !== -1) {
+
+            const work =
+                workMaster[editingWorkIndex];
+
+            document.getElementById("workName").value =
+                work.name;
+
+            document.getElementById("workCategory").value =
+                work.category || "other";
+        }
+
+        document.getElementById("btnSaveWork")
+            .addEventListener("click", saveWork);
     }
+
     renderWorkList();
-}
+} 
 
 function toggleWorkForm() {
     workFormVisible = !workFormVisible;
@@ -328,6 +377,7 @@ function renderMaterialMaster() {
                 <option value="個">個</option>
                 <option value="kg">kg</option>
                 <option value="L">L</option>
+                 <option value="艘">艘</option>
             </select>
             <br><br>
 
@@ -880,3 +930,5 @@ function togglePriceForm() {
     }
     renderPriceMaster();
 }
+
+
