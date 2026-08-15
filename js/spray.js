@@ -221,37 +221,55 @@ function removeSprayMaterial(index) {
 // ==========================================
 function loadSprayForEdit() {
 
-    const record = recordList[editingRecordIndex];
+    const record =
+        recordList[editingRecordIndex];
 
     if (!record) {
         alert("編集する記録が見つかりません。");
         return;
     }
 
-    // 作業日を復元
-    recordDate = record.date;
-
-    // 田んぼを復元
-    selectedFieldIds = (record.fields || []).map(field =>
-        String(field.fieldNo)
-    );
-}
+    // --------------------------
+    // 作業日
+    // --------------------------
+    recordDate =
+        record.date;
 
 
-// ==========================================
-// 葉面散布編集画面
-// ==========================================
-function showSprayEdit() {
+    // --------------------------
+    // 田んぼ
+    // --------------------------
+    selectedFieldIds =
+        (record.fields || []).map(
+            field => String(field.fieldNo)
+        );
 
-    const record = recordList[editingRecordIndex];
 
-    if (!record) {
-        alert("編集する記録が見つかりません。");
-        return;
+    // --------------------------
+    // タンク容量を復元
+    // --------------------------
+    let tankVolume = 0;
+
+    const memo =
+        record.memo || "";
+
+    const match =
+        memo.match(
+            /タンク容量:\s*([\d.]+)L/
+        );
+
+    if (match) {
+        tankVolume =
+            Number(match[1]);
     }
 
+
+    // --------------------------
+    // 既存資材を復元
+    // --------------------------
     const firstField =
-        record.fields && record.fields.length > 0
+        record.fields &&
+        record.fields.length > 0
             ? record.fields[0]
             : null;
 
@@ -261,19 +279,92 @@ function showSprayEdit() {
             ? firstField.materials
             : [];
 
-    // タンク容量をメモから復元
-    let tankSize = "";
 
-    if (record.memo) {
+    materialInputRows =
+        materials.map(mat => {
 
-        const match =
-            record.memo.match(/タンク容量:\s*([0-9.]+)L/);
+            const materialIndex =
+                materialMaster.findIndex(
+                    material =>
+                        material.name === mat.material
+                );
 
-        if (match) {
-            tankSize = match[1];
-        }
+
+            let dilution = "";
+
+
+            // 使用量から倍率を逆算
+            if (
+                tankVolume > 0 &&
+                Number(mat.amount) > 0
+            ) {
+
+                dilution =
+                    tankVolume /
+                    Number(mat.amount);
+
+            }
+
+
+            return {
+
+                materialIndex:
+                    materialIndex >= 0
+                        ? materialIndex
+                        : "",
+
+                dilution:
+                    dilution > 0
+                        ? dilution
+                        : ""
+
+            };
+
+        });
+
+
+    // 資材がない古い記録への保険
+    if (materialInputRows.length === 0) {
+
+        resetMaterialInputRows();
+
     }
 
+}
+// ==========================================
+// 葉面散布編集画面
+// ==========================================
+function showSprayEdit() {
+
+    const record =
+        recordList[editingRecordIndex];
+
+    if (!record) {
+        alert("編集する記録が見つかりません。");
+        return;
+    }
+
+
+    // ----------------------------------------
+    // タンク容量
+    // 既存データは memo から復元
+    // ----------------------------------------
+    let tankVolume = 0;
+
+    const memo =
+        record.memo || "";
+
+    const match =
+        memo.match(/タンク容量:\s*([0-9.]+)L/);
+
+    if (match) {
+        tankVolume = Number(match[1]);
+    }
+
+
+    // ----------------------------------------
+    // 編集画面
+    // ----------------------------------------
     const app =
         document.getElementById("app");
 
@@ -281,12 +372,17 @@ function showSprayEdit() {
         return;
     }
 
+
     app.innerHTML = `
+
         <div class="page">
 
             <div class="page-header">
                 <h2>✏️ 葉面散布編集</h2>
             </div>
+
+
+            <!-- 作業日 -->
 
             <div class="card">
 
@@ -295,10 +391,13 @@ function showSprayEdit() {
                 <input
                     type="date"
                     id="editSprayDate"
-                    value="${record.date || ""}">
+                    value="${record.date || ""}"
+                >
 
             </div>
 
+
+            <!-- 田んぼ -->
 
             <div class="card">
 
@@ -315,123 +414,133 @@ function showSprayEdit() {
             </div>
 
 
+            <!-- タンク容量 -->
+
             <div class="card">
 
                 <label>タンク容量</label><br>
 
-                <div class="form-input-row">
+                <select
+                    id="editSprayTank"
+                    class="form-select-full"
+                    onchange="
+                        calculateMaterialInputAmounts(
+                            this.value,
+                            '葉面散布'
+                        );
+                    "
+                >
 
-                    <input
-                        type="number"
-                        id="editSprayTank"
-                        step="1"
-                        class="form-input-amount"
-                        value="${tankSize}">
+                    <option value="">
+                        -- タンク容量 --
+                    </option>
 
-                    <span>L</span>
+                    <option
+                        value="100"
+                        ${Number(tankVolume) === 100
+                            ? "selected"
+                            : ""}
+                    >
+                        100L
+                    </option>
 
-                </div>
+                    <option
+                        value="200"
+                        ${Number(tankVolume) === 200
+                            ? "selected"
+                            : ""}
+                    >
+                        200L
+                    </option>
+
+                    <option
+                        value="300"
+                        ${Number(tankVolume) === 300
+                            ? "selected"
+                            : ""}
+                    >
+                        300L
+                    </option>
+   <option
+                        value="400"
+                        ${Number(tankVolume) === 400
+                            ? "selected"
+                            : ""}
+                    >
+                        400L
+                    </option>
+                    <option
+                        value="500"
+                        ${Number(tankVolume) === 500
+                            ? "selected"
+                            : ""}
+                    >
+                        500L
+                    </option>
+
+                </select>
 
             </div>
 
+
+            <!-- 資材 -->
 
             <div class="card">
 
                 <h3>使用資材</h3>
 
-                <div id="editSprayMaterials">
+                <div id="materialInputRows"></div>
 
-                    ${
-                        materials.length > 0
-                            ? materials.map((mat, index) => {
+                <br>
 
-                                const master =
-                                    materialMaster.find(
-                                        m => m.name === mat.material
-                                    );
-
-                                const unit =
-                                    master && master.weightUnit
-                                        ? master.weightUnit
-                                        : mat.unit || "";
-
-                                return `
-                                    <div
-                                        class="card"
-                                        style="margin-bottom:10px;">
-
-                                        <label>資材</label><br>
-
-                                        <select
-                                            class="form-select-full"
-                                            id="editSprayMaterial_${index}">
-
-                                            <option value="">
-                                                選択してください
-                                            </option>
-
-                                            ${materialMaster
-                                                .map(m => `
-                                                    <option
-                                                        value="${m.name}"
-                                                        ${m.name === mat.material
-                                                            ? "selected"
-                                                            : ""}>
-                                                        ${m.name}
-                                                    </option>
-                                                `)
-                                                .join("")}
-
-                                        </select>
-
-                                        <br><br>
-
-                                        <label>使用量</label><br>
-
-                                        <div class="form-input-row">
-
-                                            <input
-                                                type="number"
-                                                step="0.001"
-                                                class="form-input-amount"
-                                                id="editSprayAmount_${index}"
-                                                value="${mat.amount}">
-
-                                            <span>${unit}</span>
-
-                                        </div>
-
-                                    </div>
-                                `;
-
-                            }).join("")
-                            : `
-                                <p>使用資材がありません。</p>
-                            `
-                    }
-
-                </div>
+                <button
+                    type="button"
+                    class="btn-save-green"
+                    onclick="
+                        addMaterialInputRowAndRender(
+                            '葉面散布',
+                            Number(
+                                document.getElementById(
+                                    'editSprayTank'
+                                )?.value || 0
+                            )
+                        );
+                    "
+                >
+                    ＋資材追加
+                </button>
 
             </div>
 
+
+            <!-- 保存 -->
 
             <div class="card">
 
                 <button
                     class="btn-save-green"
-                    onclick="saveSprayEdit()">
-
-                    💾 保存
-
+                    onclick="saveSprayEdit()"
+                >
+                    💾 葉面散布の変更を保存
                 </button>
 
             </div>
 
         </div>
     `;
+
+
+    // ----------------------------------------
+    // 資材入力行を描画
+    // ----------------------------------------
+
+    renderMaterialInputRows(
+        "葉面散布",
+        tankVolume,
+        true
+    );
+
 }
-
-
 // ==========================================
 // 葉面散布編集用 田んぼ選択
 // ==========================================
@@ -487,9 +596,10 @@ function renderSprayEditFieldButtons() {
 }
 
 
-// ==========================================
+
+// ========================================
 // 葉面散布編集保存
-// ==========================================
+// ========================================
 function saveSprayEdit() {
 
     const record =
@@ -500,174 +610,205 @@ function saveSprayEdit() {
         return;
     }
 
-    // --------------------------
-    // 入力値取得
-    // --------------------------
 
+    // ----------------------------------------
+    // 作業日
+    // ----------------------------------------
     const date =
-        document.getElementById("editSprayDate").value;
-
-    const tank =
-        Number(
-            document.getElementById("editSprayTank").value
-        );
-
-
-    // --------------------------
-    // 入力チェック
-    // --------------------------
+        document.getElementById("editSprayDate")?.value ||
+        recordDate;
 
     if (!date) {
+
         alert("作業日を入力してください。");
         return;
+
     }
 
+
+    // ----------------------------------------
+    // 田んぼ
+    // ----------------------------------------
     if (
         !selectedFieldIds ||
         selectedFieldIds.length === 0
     ) {
+
         alert("田んぼを選択してください。");
         return;
+
     }
 
-    if (!tank || tank <= 0) {
+
+    // ----------------------------------------
+    // タンク容量
+    // ----------------------------------------
+    const tank =
+        Number(
+            document.getElementById(
+                "editSprayTank"
+            )?.value || 0
+        );
+
+    if (tank <= 0) {
+
         alert("タンク容量を入力してください。");
         return;
+
     }
 
 
-    // --------------------------
-    // 資材を取得
-    // --------------------------
+    // ----------------------------------------
+    // 資材入力チェック
+    // ----------------------------------------
+    if (
+        !Array.isArray(materialInputRows) ||
+        materialInputRows.length === 0
+    ) {
 
-    const oldMaterials =
-        record.fields &&
-        record.fields.length > 0 &&
-        Array.isArray(record.fields[0].materials)
-            ? record.fields[0].materials
-            : [];
+        alert("使用資材を1つ以上入力してください。");
+        return;
 
+    }
+
+
+    // ----------------------------------------
+    // 保存用資材データ
+    // ----------------------------------------
     const materials = [];
 
-    let hasError = false;
 
+    materialInputRows.forEach(row => {
 
-    oldMaterials.forEach((oldMaterial, index) => {
-
-        const materialSelect =
-            document.getElementById(
-                `editSprayMaterial_${index}`
-            );
-
-        const amountInput =
-            document.getElementById(
-                `editSprayAmount_${index}`
-            );
-
-        if (!materialSelect || !amountInput) {
+        // 資材未選択
+        if (
+            row.materialIndex === "" ||
+            row.materialIndex === null ||
+            row.materialIndex === undefined
+        ) {
             return;
         }
 
-        const material =
-            materialSelect.value;
 
-        const amount =
-            Number(amountInput.value);
+        // 倍率未選択
+        if (
+            row.dilution === "" ||
+            Number(row.dilution) <= 0
+        ) {
+            return;
+        }
+
+
+        const material =
+            materialMaster[
+                Number(row.materialIndex)
+            ];
 
 
         if (!material) {
-            alert("使用資材を選択してください。");
-            hasError = true;
-            return;
-        }
-
-        if (amount <= 0) {
-            alert("使用量を入力してください。");
-            hasError = true;
             return;
         }
 
 
-        const master =
-            materialMaster.find(
-                m => m.name === material
-            );
+        const amount =
+            tank /
+            Number(row.dilution);
 
 
         materials.push({
 
-            material: material,
+            material:
+                material.name,
 
-            amount: amount,
+            amount:
+                amount,
 
-            // 資材マスタの「内容量単位」を使用
-            unit: master && master.weightUnit
-                ? master.weightUnit
-                : oldMaterial.unit || ""
+            unit:
+                "L"
 
         });
 
     });
 
 
-    if (hasError) {
-        return;
-    }
-
+    // ----------------------------------------
+    // 資材チェック
+    // ----------------------------------------
     if (materials.length === 0) {
-        alert("使用資材を1つ以上入力してください。");
+
+        alert(
+            "資材と倍率を1つ以上入力してください。"
+        );
+
         return;
+
     }
 
 
-    // --------------------------
-    // fields を再構築
-    // --------------------------
+    // ----------------------------------------
+    // 既存レコードを更新
+    // ----------------------------------------
+    record.date =
+        date;
 
-    const fieldsData =
+    record.work =
+        "葉面散布";
+
+    record.memo =
+        `タンク容量: ${tank}L`;
+
+
+    record.fields =
         selectedFieldIds.map(fieldNo => {
 
             return {
 
-                fieldNo: fieldNo,
+                fieldNo:
+                    Number(fieldNo),
 
-                materials: materials.map(mat => ({
-                    material: mat.material,
-                    amount: mat.amount,
-                    unit: mat.unit
-                }))
+                materials:
+                    materials.map(item => ({
+
+                        material:
+                            item.material,
+
+                        amount:
+                            item.amount,
+
+                        unit:
+                            item.unit
+
+                    }))
 
             };
 
         });
 
 
-    // --------------------------
-    // レコード更新
-    // --------------------------
-
-    record.date = date;
-
-    record.work = "葉面散布";
-
-    record.memo =
-        `タンク容量: ${tank}L`;
-
-    record.fields =
-        fieldsData;
-
-
-    // --------------------------
+    // ----------------------------------------
     // 保存
-    // --------------------------
-
+    // ----------------------------------------
     saveRecordList();
 
+
+    // ----------------------------------------
+    // 編集状態を解除
+    // ----------------------------------------
     selectedFieldIds = [];
+
+    resetMaterialInputRows();
 
     editingRecordIndex = -1;
 
-    alert("葉面散布の記録を更新しました。");
+
+    // ----------------------------------------
+    // 完了
+    // ----------------------------------------
+    alert(
+        "葉面散布の記録を更新しました。"
+    );
+
 
     showHistory();
+
 }

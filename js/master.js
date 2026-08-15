@@ -280,6 +280,7 @@ function renderWorkList() {
             case "fertilizer": categoryName = "肥料"; break;
             case "spray": categoryName = "葉面散布"; break;
             case "weed": categoryName = "除草"; break;
+            case "planting":  categoryName = "植え付け"; break;
             default: categoryName = "その他";
         }
         html += `

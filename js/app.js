@@ -1809,8 +1809,22 @@ function toggleFieldSelection(fieldId) {
         document.querySelector(".selection-flex-wrap");
 
     if (container) {
-        container.innerHTML = renderAllFieldButtons();
+
+    if (
+        inputTab === "fertilizer"
+    ) {
+
+        container.innerHTML =
+            renderFertilizerFieldButtons();
+
+    } else {
+
+        container.innerHTML =
+            renderAllFieldButtons();
+
     }
+
+}
 }　
 // ------------------------
 // 肥料一覧をプルダウンへ表示
@@ -2083,13 +2097,12 @@ editFields.forEach((field, fieldIndex) => {
    <select
     onchange="changeEditMaterial(${fieldIndex}, ${materialIndex}, this.value)">
 
-    ${materialMaster.map(item => `
-        <option
-            value="${item.name}"
-            ${item.name === material.material ? "selected" : ""}>
-            ${item.name}
-        </option>
-    `).join("")}
+    ${getEditMaterialOptions(
+    "fertilizer",
+    null,
+    field.materials,
+    material.material
+)}
 
 </select>
 
@@ -2149,6 +2162,7 @@ let html = `
     app.innerHTML = html;
 
 }
+
 
 // ------------------------
 // 編集袋数変更
@@ -4054,10 +4068,14 @@ function showPlantingEdit() {
                     <label>品種</label><br>
                     <select id="editPlantingMaterial" class="form-select-full">
                         <option value="">選択してください</option>
-                        ${materialMaster
-                            .filter(m => m.category === "variety")
-                            .map(m => `<option value="${m.name}" ${m.name === currentMaterial ? "selected" : ""}>${m.name}</option>`)
-                            .join("")}
+                        ${getEditMaterialOptions(
+    null,
+    "植え付け",
+    record.fields.flatMap(
+        field => field.materials || []
+    ),
+    currentMaterial
+)}
                     </select>
                     <br><br>
 

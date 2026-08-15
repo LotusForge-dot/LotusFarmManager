@@ -81,7 +81,7 @@ function changeMaterialInputDilution(
 // 共通：資材入力行を描画
 // 葉面散布・除草剤で共通使用
 // ========================================
-function renderMaterialInputRows(workName, tankVolume) {
+function renderMaterialInputRows(workName, tankVolume,isEdit = false) {
 
     const container =
         document.getElementById("materialInputRows");
@@ -100,44 +100,78 @@ function renderMaterialInputRows(workName, tankVolume) {
         // ----------------------------------------
         // 資材プルダウン
         // ----------------------------------------
-        let materialOptions = `
-            <option value="">
-                -- 資材を選択 --
-            </option>
-        `;
+        let materialOptions = "";
 
+if (isEdit) {
 
-        if (Array.isArray(materialMaster)) {
+    const record =
+        recordList[editingRecordIndex];
 
-            materialMaster.forEach(
-                (material, materialIndex) => {
+    const existingMaterials =
+        record &&
+        Array.isArray(record.fields)
+            ? record.fields.flatMap(
+                field =>
+                    Array.isArray(field.materials)
+                        ? field.materials
+                        : []
+            )
+            : [];
 
-                    if (
-                        material.works &&
-                        material.works.includes(workName)
-                    ) {
+    const selectedMaterial =
+        materialMaster[
+            Number(row.materialIndex)
+        ]?.name || "";
 
-                        const selected =
-                            String(materialIndex) ===
-                            String(row.materialIndex)
-                                ? "selected"
-                                : "";
+    materialOptions =
+        getEditMaterialOptions(
+            null,
+            workName,
+            existingMaterials,
+            selectedMaterial
+        );
 
-                        materialOptions += `
-                            <option
-                                value="${materialIndex}"
-                                ${selected}
-                            >
-                                ${material.name}
-                            </option>
-                        `;
-                    }
+} else {
+
+    materialOptions = `
+        <option value="">
+            -- 資材を選択 --
+        </option>
+    `;
+
+    if (Array.isArray(materialMaster)) {
+
+        materialMaster.forEach(
+            (material, materialIndex) => {
+
+                if (
+                    material.works &&
+                    material.works.includes(workName)
+                ) {
+
+                    const selected =
+                        String(materialIndex) ===
+                        String(row.materialIndex)
+                            ? "selected"
+                            : "";
+
+                    materialOptions += `
+                        <option
+                            value="${materialIndex}"
+                            ${selected}
+                        >
+                            ${material.name}
+                        </option>
+                    `;
 
                 }
-            );
 
-        }
+            }
+        );
 
+    }
+
+}
 
         // ----------------------------------------
         // 倍率プルダウン
@@ -948,5 +982,703 @@ function saveHerbicideRecord() {
         showInput();
 
     }
+
+}
+
+function loadHerbicideForEdit() {
+
+    const record =
+        recordList[editingRecordIndex];
+
+    if (!record) return;
+
+
+    // 作業日
+    recordDate = record.date;
+
+
+    // 田んぼ
+    selectedFieldIds =
+    record.fields.map(
+        field => String(field.fieldNo)
+    );
+
+
+    // タンク容量
+    const memo =
+        record.memo || "";
+
+    const match =
+        memo.match(/タンク容量:\s*([\d.]+)L/);
+
+    const tankVolume =
+        match
+            ? Number(match[1])
+            : 0;
+
+
+    // 共通入力行を作成
+    materialInputRows = [];
+
+
+    // 最初の田んぼの資材を基準に復元
+    const firstField =
+        record.fields?.[0];
+
+
+    if (
+        firstField &&
+        Array.isArray(firstField.materials)
+    ) {
+
+        firstField.materials.forEach(
+            item => {
+
+                const materialIndex =
+                    materialMaster.findIndex(
+                        material =>
+                            material.name ===
+                            item.material
+                    );
+
+
+                if (materialIndex < 0) {
+                    return;
+                }
+
+
+                const amount =
+                    Number(item.amount) || 0;
+
+
+                const dilution =
+                    amount > 0 &&
+                    tankVolume > 0
+                        ? tankVolume / amount
+                        : "";
+
+
+                materialInputRows.push({
+
+                    materialIndex:
+                        materialIndex,
+
+                    dilution:
+                        dilution
+
+                });
+
+            }
+        );
+
+    }
+
+
+    // 資材がない場合でも1行
+    if (
+        materialInputRows.length === 0
+    ) {
+
+        resetMaterialInputRows();
+
+    }
+
+}
+
+
+// ========================================
+// 除草剤編集画面
+// ========================================
+function showHerbicideEdit() {
+
+    const record =
+        recordList[editingRecordIndex];
+
+    if (!record) {
+        alert("編集対象の記録が見つかりません。");
+        return;
+    }
+
+
+    // ----------------------------------------
+    // タンク容量
+    // ----------------------------------------
+    const memo =
+        record.memo || "";
+
+    const match =
+        memo.match(/タンク容量:\s*([\d.]+)L/);
+
+    const tankVolume =
+        match
+            ? Number(match[1])
+            : 0;
+
+
+    // ----------------------------------------
+    // 編集画面HTML
+    // ----------------------------------------
+    let html = `
+
+        <div class="card">
+
+            <h3 class="input-header">
+                🌿 除草剤記録を編集
+            </h3>
+
+
+            <!-- 作業日 -->
+
+            <label>作業日</label>
+
+            <input
+                type="date"
+                id="recordDate"
+                value="${record.date || ""}"
+                onchange="
+                    recordDate = this.value;
+                "
+            >
+
+            <br><br>
+
+
+            <!-- 田んぼ -->
+
+            <div class="form-group">
+
+                <label class="form-group-label">
+                    🌾 田んぼを選択してください
+                </label>
+
+                <div class="selection-flex-wrap">
+                    ${renderAllFieldButtons()}
+                </div>
+
+            </div>
+
+
+            <!-- タンク容量 -->
+
+            <div class="card">
+
+                <label>タンク容量</label>
+
+                <select
+                    id="herbicideTank"
+                    class="form-select-full"
+                    onchange="
+                        renderMaterialInputRows(
+                            '除草',
+                            Number(this.value),
+                            true
+                        );
+                    "
+                >
+
+                    <option value="">
+                        -- タンク容量 --
+                    </option>
+
+                    ${Array.from(
+                        { length: 10 },
+                        (_, i) => {
+
+                            const value = i + 1;
+
+                            const selected =
+                                value === tankVolume
+                                    ? "selected"
+                                    : "";
+
+                            return `
+                                <option
+                                    value="${value}"
+                                    ${selected}
+                                >
+                                    ${value}L
+                                </option>
+                            `;
+
+                        }
+                    ).join("")}
+
+                </select>
+
+            </div>
+
+
+            <!-- 資材 -->
+
+            <div class="card">
+
+                <div class="spray-grid-row">
+
+                    <div class="spray-col-material">
+                        <label>資材</label>
+                    </div>
+
+                    <div class="spray-col-controls">
+                        <label>倍率</label>
+                        <span class="spray-item-amount"></span>
+
+                        <span
+                            style="
+                                width: 24px;
+                                display: inline-block;
+                            "
+                        ></span>
+                    </div>
+
+                </div>
+
+
+                <div id="materialInputRows"></div>
+
+
+                <br>
+
+
+                <button
+                    type="button"
+                    class="btn-save-green"
+                    onclick="
+                        addMaterialInputRowAndRender(
+                            '除草',
+                            Number(
+                                document.getElementById(
+                                    'herbicideTank'
+                                )?.value || 0
+                            )
+                        );
+                    "
+                >
+                    ＋資材追加
+                </button>
+
+            </div>
+
+
+            <!-- 保存 -->
+
+            <div class="card">
+
+                <button
+                    class="btn-save-green"
+                    onclick="updateHerbicideRecord()"
+                >
+                    💾 除草剤の変更を保存
+                </button>
+
+            </div>
+
+        </div>
+    `;
+
+
+    // ----------------------------------------
+    // 表示
+    // ----------------------------------------
+
+    const container =
+        document.getElementById("app");
+
+    if (!container) return;
+
+    container.innerHTML = html;
+
+
+    // ----------------------------------------
+    // 共通資材入力行を描画
+    // ----------------------------------------
+
+    renderMaterialInputRows(
+        "除草",
+        tankVolume
+    );
+
+}
+// ========================================
+// 除草剤編集保存
+// ========================================
+function updateHerbicideRecord() {
+
+    const record =
+        recordList[editingRecordIndex];
+
+    if (!record) {
+
+        alert("編集する記録が見つかりません。");
+        return;
+
+    }
+
+
+    // ----------------------------------------
+    // 作業日
+    // ----------------------------------------
+    const date =
+        document.getElementById("recordDate")?.value ||
+        recordDate;
+
+    if (!date) {
+
+        alert("作業日を入力してください。");
+        return;
+
+    }
+
+
+    // ----------------------------------------
+    // 田んぼ
+    // ----------------------------------------
+    if (
+        !selectedFieldIds ||
+        selectedFieldIds.length === 0
+    ) {
+
+        alert(
+            "田んぼを少なくとも1つ選択してください。"
+        );
+
+        return;
+
+    }
+
+
+    // ----------------------------------------
+    // タンク容量
+    // ----------------------------------------
+    const tankVolume =
+        Number(
+            document.getElementById(
+                "herbicideTank"
+            )?.value || 0
+        );
+
+    if (tankVolume <= 0) {
+
+        alert("タンク容量を選択してください。");
+        return;
+
+    }
+
+
+    // ----------------------------------------
+    // 共通入力行チェック
+    // ----------------------------------------
+    if (
+        !Array.isArray(materialInputRows) ||
+        materialInputRows.length === 0
+    ) {
+
+        alert("除草剤を1つ以上選択してください。");
+        return;
+
+    }
+
+
+    // ----------------------------------------
+    // 資材データ作成
+    // ----------------------------------------
+    const materials = [];
+
+
+    materialInputRows.forEach(row => {
+
+        if (
+            row.materialIndex === "" ||
+            row.materialIndex === null ||
+            row.materialIndex === undefined
+        ) {
+            return;
+        }
+
+
+        if (
+            row.dilution === "" ||
+            Number(row.dilution) <= 0
+        ) {
+            return;
+        }
+
+
+        const material =
+            materialMaster[
+                Number(row.materialIndex)
+            ];
+
+
+        if (!material) {
+            return;
+        }
+
+
+        const dilution =
+            Number(row.dilution);
+
+
+        const amount =
+            tankVolume / dilution;
+
+
+        materials.push({
+
+            material:
+                material.name,
+
+            amount:
+                amount,
+
+            unit:
+                "L",
+
+            dilution:
+                dilution
+
+        });
+
+    });
+
+
+    // ----------------------------------------
+    // 資材チェック
+    // ----------------------------------------
+    if (materials.length === 0) {
+
+        alert(
+            "除草剤と倍率を1つ以上選択してください。"
+        );
+
+        return;
+
+    }
+
+
+    // ----------------------------------------
+    // 田んぼごとのデータを再構築
+    // ----------------------------------------
+    const fieldsData =
+        selectedFieldIds.map(fieldNo => {
+
+            return {
+
+                fieldNo:
+                    Number(fieldNo),
+
+                materials:
+                    materials.map(item => ({
+
+                        material:
+                            item.material,
+
+                        amount:
+                            item.amount,
+
+                        unit:
+                            item.unit,
+
+                        dilution:
+                            item.dilution
+
+                    }))
+
+            };
+
+        });
+
+
+    // ----------------------------------------
+    // 既存レコードを更新
+    // ----------------------------------------
+    record.date =
+        date;
+
+    record.work =
+        "除草";
+
+    record.tankVolume =
+        tankVolume;
+
+    record.memo =
+        `タンク容量: ${tankVolume}L`;
+
+    record.fields =
+        fieldsData;
+
+
+    // ----------------------------------------
+    // 保存
+    // ----------------------------------------
+    saveRecordList();
+
+
+    // ----------------------------------------
+    // 編集状態を解除
+    // ----------------------------------------
+    selectedFieldIds = [];
+
+    resetMaterialInputRows();
+
+    editingRecordIndex = -1;
+
+
+    // ----------------------------------------
+    // 完了
+    // ----------------------------------------
+    alert(
+        "除草剤の記録を更新しました。"
+    );
+
+
+    // ----------------------------------------
+    // 履歴へ
+    // ----------------------------------------
+    showHistory();
+
+}
+// ========================================
+// 編集用：資材プルダウン候補を生成
+// ========================================
+// 現在使用可能な資材
+// ＋
+// 編集対象レコードに既に登録されている資材
+// を候補にする
+//
+// category を指定
+//   → category で絞る
+//
+// workName を指定
+//   → works に workName が含まれる資材で絞る
+//
+// selectedMaterial
+//   → 現在の行で選択されている資材
+// ========================================
+function getEditMaterialOptions(
+    category,
+    workName,
+    existingMaterials = [],
+    selectedMaterial = ""
+) {
+
+    const existingNames =
+        Array.isArray(existingMaterials)
+            ? existingMaterials
+                .map(item =>
+                    typeof item === "string"
+                        ? item
+                        : item?.material
+                )
+                .filter(Boolean)
+            : [];
+
+
+    const options = [];
+
+
+    if (!Array.isArray(materialMaster)) {
+
+        return `
+            <option value="">
+                -- 資材を選択 --
+            </option>
+        `;
+
+    }
+
+
+    materialMaster.forEach(
+        (material, materialIndex) => {
+
+            const isExistingMaterial =
+                existingNames.includes(
+                    material.name
+                );
+
+
+            const matchesCategory =
+                category &&
+                material.category === category;
+
+
+            const matchesWork =
+                workName &&
+                Array.isArray(material.works) &&
+                material.works.includes(workName);
+
+
+            if (
+                matchesCategory ||
+                matchesWork ||
+                isExistingMaterial
+            ) {
+
+                options.push({
+
+                    index:
+                        materialIndex,
+
+                    name:
+                        material.name
+
+                });
+
+            }
+
+        }
+    );
+
+
+    // ----------------------------------------
+    // 重複除去
+    // ----------------------------------------
+    const uniqueOptions =
+        options.filter(
+            (item, index, array) =>
+                array.findIndex(
+                    other =>
+                        other.index === item.index
+                ) === index
+        );
+
+
+    // ----------------------------------------
+    // HTML生成
+    // ----------------------------------------
+    let html = `
+        <option value="">
+            -- 資材を選択 --
+        </option>
+    `;
+
+
+    uniqueOptions.forEach(item => {
+
+        const selected =
+            item.name === selectedMaterial
+                ? "selected"
+                : "";
+
+console.log(
+        "候補:",
+        item.name,
+        "現在:",
+        selectedMaterial,
+        "selected:",
+        selected
+    );
+        html += `
+            <option
+                value="${item.name}"
+                ${selected}
+            >
+                ${item.name}
+            </option>
+        `;
+
+    });
+
+
+    return html;
 
 }

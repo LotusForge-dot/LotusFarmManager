@@ -308,7 +308,86 @@ function renderAllFieldButtons() {
     });
     return fieldListHtml;
 }
+// ==========================================
+// 肥料入力用：施肥設計がある田んぼだけ生成
+// ==========================================
+function renderFertilizerFieldButtons() {
 
+    let fieldListHtml = "";
+
+    const year =
+        recordDate
+            ? recordDate.substring(0, 4)
+            : "";
+
+    fieldMaster.forEach(field => {
+
+        const plan =
+            typeof getFertilizerPlan === "function"
+                ? getFertilizerPlan(
+                    year,
+                    String(field.no)
+                )
+                : null;
+
+        if (!plan) return;
+
+
+        // ----------------------------------------
+        // 元肥
+        // ----------------------------------------
+        if (fertilizerMode === "base") {
+
+            const hasBase =
+                Array.isArray(plan.materials) &&
+                plan.materials.some(
+                    material =>
+                        material.work === "元肥"
+                );
+
+            if (!hasBase) return;
+
+        }
+
+
+        // ----------------------------------------
+        // 追肥
+        // ----------------------------------------
+        if (fertilizerMode === "top") {
+
+            const hasWork =
+                Array.isArray(plan.materials) &&
+                plan.materials.some(
+                    material =>
+                        material.work === selectedTopWork
+                );
+
+            if (!hasWork) return;
+
+        }
+
+
+        const selected =
+            selectedFieldIds.includes(
+                String(field.no)
+            );
+
+
+        fieldListHtml += `
+            <button
+                class="${selected ? "tab active" : "tab"}"
+                onclick="toggleFieldSelection('${field.no}')">
+
+                ${selected ? "☑" : "☐"}
+                ${field.no}　${field.owner}
+
+            </button>
+        `;
+
+    });
+
+    return fieldListHtml;
+}
 // ==========================================
 // 3. 各タブのHTML生成関数
 // ==========================================
@@ -342,8 +421,10 @@ function getFertilizerHtml() {
                     onchange="recordDate = this.value">
                 <br><br>
                 <p>田んぼを選択してください</p>
-                ${renderAllFieldButtons()}
-            </div>
+
+<div class="selection-flex-wrap">
+    ${renderFertilizerFieldButtons()}
+</div>
             <div class="card">
                 <button class="mainButton" onclick="loadBaseFertilizerFromPlan()">
                     📋施肥設計読込
@@ -412,7 +493,10 @@ function getFertilizerHtml() {
                 <br><br>
                 ${topWorkHtml}
                 <p>田んぼを選択してください</p>
-                ${fieldListHtml}
+
+<div class="selection-flex-wrap">
+    ${fieldListHtml}
+</div>
             </div>
             <div class="card">
                 <button class="mainButton" onclick="loadTopFertilizerFromPlan()">
@@ -519,7 +603,7 @@ function getSprayHtml() {
                     </option>
 
                     <option value="300">300L</option>
-
+<option value="400">400L</option>
                     <option value="500">500L</option>
 
                 </select>
