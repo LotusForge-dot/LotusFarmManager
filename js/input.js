@@ -786,7 +786,10 @@ function getOtherHtml() {
                 <label>使用資材 (任意)</label><br>
                 <select id="otherMaterial" class="form-select-full" onchange="updateOtherMaterialUnit()">
                     <option value="">使用なし</option>
-                    ${materialMaster.map(m => `<option value="${m.name}">${m.name}</option>`).join("")}
+                    ${materialMaster
+    .filter(m => m.category === "other")
+    .map(m => `<option value="${m.name}">${m.name}</option>`)
+    .join("")}
                 </select>
                 <br><br>
 

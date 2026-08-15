@@ -57,6 +57,11 @@ let selectedTopWork = "追肥①";
 let historyTab = "shipment";
 
 
+
+let otherEditMaterials = [];
+let otherEditWork = "";
+let otherEditMemo = "";
+
 // ------------------------
 // 履歴
 // -----------------------
@@ -736,6 +741,21 @@ function editRecord(index) {
         showTopFertilizerEdit();
         return;
     }
+    // その他カテゴリーの作業
+    const workInfo =
+        workMaster.find(work =>
+            work.name === record.work
+        );
+
+    if (
+        workInfo &&
+        workInfo.category === "other"
+    ) {
+        loadOtherForEdit();
+        showOtherEdit();
+        return;
+    }
+
 
     // 作業内容ごとに編集画面を振り分け
     switch (record.work) {
@@ -755,9 +775,7 @@ function editRecord(index) {
     showHerbicideEdit();
     break;
 
-        case "その他":
-            alert("その他の編集機能は未実装です。");
-            break;
+        
 
         case "出荷":
             alert("出荷の編集機能は未実装です。");
@@ -3450,6 +3468,604 @@ function saveOtherRecord() {
     showHistory(); // 履歴画面へ遷移
 }
 
+// ==========================================
+// その他編集データ読み込み
+// ==========================================
+function loadOtherForEdit() {
+
+    const record =
+        recordList[editingRecordIndex];
+
+    if (!record) {
+        alert("編集する記録が見つかりません。");
+        return;
+    }
+
+    // 作業日
+    recordDate =
+        record.date || "";
+
+    // 作業内容
+    otherEditWork =
+        record.work || "";
+
+    // 備考
+    otherEditMemo =
+        record.memo || "";
+
+    // 田んぼ
+    selectedFieldIds =
+        (record.fields || []).map(
+            field => String(field.fieldNo)
+        );
+
+    // 既存資材
+    const firstField =
+        record.fields &&
+        record.fields.length > 0
+            ? record.fields[0]
+            : null;
+
+    otherEditMaterials =
+        firstField &&
+        Array.isArray(firstField.materials)
+            ? firstField.materials.map(material => ({
+                material: material.material,
+                amount: material.amount
+            }))
+            : [];
+
+}
+
+
+// ==========================================
+// その他編集画面
+// ==========================================
+function showOtherEdit() {
+
+    const record =
+        recordList[editingRecordIndex];
+
+    if (!record) {
+        alert("編集する記録が見つかりません。");
+        return;
+    }
+
+
+    let materialHtml = "";
+
+
+    // 資材入力行
+    otherEditMaterials.forEach(
+        (material, index) => {
+
+            const master =
+                materialMaster.find(
+                    m => m.name === material.material
+                );
+
+            const unit =
+                master
+                    ? master.unit
+                    : "";
+
+
+            materialHtml += `
+
+                <div
+                    class="card"
+                    style="margin-bottom:10px;"
+                >
+
+                    <label>資材</label><br>
+
+                    <select
+                        id="editOtherMaterial_${index}"
+                        class="form-select-full"
+                        onchange="
+                            updateOtherEditMaterialUnit(
+                                ${index}
+                            );
+                        "
+                    >
+
+                        <option value="">
+                            使用なし
+                        </option>
+
+                        ${getEditMaterialOptions(
+    "other",
+    null,
+    [material],
+    material.material
+)}
+
+                    </select>
+
+                    <br><br>
+
+                    <label>使用量</label><br>
+
+                    <div class="form-input-row">
+
+                        <input
+                            type="number"
+                            id="editOtherAmount_${index}"
+                            step="0.1"
+                            class="form-input-amount"
+                            value="${material.amount || ""}"
+                        >
+
+                        <span
+                            id="editOtherUnit_${index}"
+                        >
+                            ${unit}
+                        </span>
+
+                    </div>
+
+                    <br>
+
+                    <button
+                        type="button"
+                        onclick="
+                            removeOtherEditMaterial(
+                                ${index}
+                            );
+                        "
+                    >
+                        🗑️ 資材削除
+                    </button>
+
+                </div>
+
+            `;
+
+        }
+    );
+
+
+    const html = `
+
+        <div class="page">
+
+            <div class="page-header">
+
+                <h2>✏️ その他作業編集</h2>
+
+            </div>
+
+
+            <!-- 作業日 -->
+
+            <div class="card">
+
+                <label>作業日</label><br>
+
+                <input
+                    type="date"
+                    id="editOtherDate"
+                    value="${record.date || ""}"
+                >
+
+            </div>
+
+
+            <!-- 田んぼ -->
+
+            <div class="card">
+
+                <label class="form-group-label">
+
+                    🌾 田んぼを選択してください
+                    （複数選択可）
+
+                </label>
+
+                <div class="selection-flex-wrap">
+
+                    ${renderAllFieldButtons()}
+
+                </div>
+
+            </div>
+
+
+            <!-- 作業内容 -->
+
+            <div class="card">
+
+                <label>作業内容</label><br>
+
+                <select
+                    id="editOtherWork"
+                    class="form-select-full"
+                >
+
+                    <option value="">
+                        選択してください
+                    </option>
+
+                    ${workMaster
+                        .filter(w =>
+                            w.category === "other" ||
+                            (
+                                w.name !== "元肥" &&
+                                !w.name.startsWith("追肥") &&
+                                w.name !== "葉面散布" &&
+                                w.name !== "除草" &&
+                                w.name !== "植え付け"
+                            )
+                        )
+                        .map(w => `
+                            <option
+                                value="${w.name}"
+                                ${
+                                    w.name === otherEditWork
+                                        ? "selected"
+                                        : ""
+                                }
+                            >
+                                ${w.name}
+                            </option>
+                        `)
+                        .join("")
+                    }
+
+                </select>
+
+            </div>
+
+
+            <!-- 資材 -->
+
+            <div class="card">
+
+                <h3>使用資材</h3>
+
+                <div id="otherEditMaterials">
+
+                    ${materialHtml}
+
+                </div>
+
+                <br>
+
+                <button
+                    type="button"
+                    class="btn-save-green"
+                    onclick="
+                        addOtherEditMaterial();
+                    "
+                >
+                    ＋資材追加
+                </button>
+
+            </div>
+
+
+            <!-- 備考 -->
+
+            <div class="card">
+
+                <label>備考・メモ</label><br>
+
+                <textarea
+                    id="editOtherMemo"
+                    class="form-textarea"
+                >${otherEditMemo}</textarea>
+
+            </div>
+
+
+            <!-- 保存 -->
+
+            <div class="card">
+
+                <button
+                    class="btn-save-green"
+                    onclick="
+                        saveOtherEdit();
+                    "
+                >
+                    💾 その他作業の変更を保存
+                </button>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    app.innerHTML =
+        html;
+
+}
+
+
+// ==========================================
+// その他編集：資材追加
+// ==========================================
+function addOtherEditMaterial() {
+
+    otherEditMaterials.push({
+
+        material: "",
+        amount: ""
+
+    });
+
+    showOtherEdit();
+
+}
+
+
+// ==========================================
+// その他編集：資材削除
+// ==========================================
+function removeOtherEditMaterial(index) {
+
+    otherEditMaterials.splice(
+        index,
+        1
+    );
+
+    showOtherEdit();
+
+}
+
+
+// ==========================================
+// その他編集：資材単位更新
+// ==========================================
+function updateOtherEditMaterialUnit(index) {
+
+    const select =
+        document.getElementById(
+            `editOtherMaterial_${index}`
+        );
+
+    const unitSpan =
+        document.getElementById(
+            `editOtherUnit_${index}`
+        );
+
+    if (!select || !unitSpan) {
+        return;
+    }
+
+    const material =
+        materialMaster.find(
+            m => m.name === select.value
+        );
+
+    unitSpan.textContent =
+        material
+            ? material.unit
+            : "";
+
+}
+
+
+// ==========================================
+// その他編集保存
+// ==========================================
+function saveOtherEdit() {
+
+    const record =
+        recordList[editingRecordIndex];
+
+    if (!record) {
+        alert("編集する記録が見つかりません。");
+        return;
+    }
+
+
+    // ----------------------------------------
+    // 入力値
+    // ----------------------------------------
+    const date =
+        document.getElementById(
+            "editOtherDate"
+        )?.value || "";
+
+    const work =
+        document.getElementById(
+            "editOtherWork"
+        )?.value || "";
+
+    const memo =
+        document.getElementById(
+            "editOtherMemo"
+        )?.value || "";
+
+
+    // ----------------------------------------
+    // 入力チェック
+    // ----------------------------------------
+    if (!date) {
+
+        alert("作業日を入力してください。");
+        return;
+
+    }
+
+
+    if (
+        !selectedFieldIds ||
+        selectedFieldIds.length === 0
+    ) {
+
+        alert("田んぼを選択してください。");
+        return;
+
+    }
+
+
+    if (!work) {
+
+        alert("作業内容を選択してください。");
+        return;
+
+    }
+
+
+    // ----------------------------------------
+    // 資材を取得
+    // ----------------------------------------
+    const materials = [];
+
+    let hasError = false;
+
+
+    otherEditMaterials.forEach(
+        (item, index) => {
+
+            const materialSelect =
+                document.getElementById(
+                    `editOtherMaterial_${index}`
+                );
+
+            const amountInput =
+                document.getElementById(
+                    `editOtherAmount_${index}`
+                );
+
+
+            if (
+                !materialSelect ||
+                !amountInput
+            ) {
+                return;
+            }
+
+
+            const material =
+                materialSelect.value;
+
+            const amount =
+                Number(amountInput.value);
+
+
+            // 資材未選択は無視
+            if (!material) {
+                return;
+            }
+
+
+            // 使用量チェック
+            if (amount <= 0) {
+
+                alert(
+                    "使用量を入力してください。"
+                );
+
+                hasError = true;
+
+                return;
+
+            }
+
+
+            materials.push({
+
+                material:
+                    material,
+
+                amount:
+                    amount
+
+            });
+
+        }
+    );
+
+
+    // 資材入力エラーがあれば保存しない
+    if (hasError) {
+        return;
+    }
+
+
+    // ----------------------------------------
+    // fieldsを再構築
+    // ----------------------------------------
+    const fieldsData =
+        selectedFieldIds.map(
+            fieldNo => {
+
+                return {
+
+                    fieldNo:
+                        fieldNo,
+
+                    materials:
+                        materials.map(
+                            material => ({
+
+                                material:
+                                    material.material,
+
+                                amount:
+                                    material.amount
+
+                            })
+                        )
+
+                };
+
+            }
+        );
+
+
+    // ----------------------------------------
+    // レコード更新
+    // ----------------------------------------
+    record.date =
+        date;
+
+    record.work =
+        work;
+
+    record.memo =
+        memo;
+
+    record.fields =
+        fieldsData;
+
+
+    // ----------------------------------------
+    // 保存
+    // ----------------------------------------
+    saveRecordList();
+
+
+    // ----------------------------------------
+    // 編集状態をクリア
+    // ----------------------------------------
+    selectedFieldIds = [];
+
+    otherEditMaterials = [];
+
+    otherEditWork = "";
+
+    otherEditMemo = "";
+
+    editingRecordIndex = -1;
+
+
+    // ----------------------------------------
+    // 完了
+    // ----------------------------------------
+    alert(
+        "その他作業の記録を更新しました。"
+    );
+
+
+    showHistory();
+
+}
 
 // 除草剤の単位表示を切り替える
 function updateHerbicideUnit() {

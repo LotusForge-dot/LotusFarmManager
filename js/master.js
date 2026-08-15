@@ -379,6 +379,7 @@ function renderMaterialMaster() {
                 <option value="kg">kg</option>
                 <option value="L">L</option>
                  <option value="艘">艘</option>
+                 <option value="枚">枚</option>
             </select>
             <br><br>
 
