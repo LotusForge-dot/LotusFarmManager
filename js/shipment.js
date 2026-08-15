@@ -957,6 +957,1145 @@ function renderShipmentHistory() {
 }
 
 
+function getShipmentSummaryHtml(records) {
+
+    // ========================================
+    // 集計データ
+    // ========================================
+
+    const shipmentSummary = {
+
+        "4kg": {
+
+            "発泡": {},
+
+            "ダンボール": {}
+
+        },
+
+        "2kg": {
+
+            "発泡": {},
+
+            "ダンボール": {}
+
+        },
+
+        "袋": {
+
+            "袋": {}
+
+        }
+
+    };
+
+
+    // ========================================
+    // 出荷記録を数量集計
+    // ========================================
+
+    records.forEach(
+        record => {
+
+            const weight =
+                record.weight;
+
+
+            if (
+                !shipmentSummary[
+                    weight
+                ]
+            ) {
+                return;
+            }
+
+
+            // ==================================
+            // 袋
+            // ==================================
+
+            if (
+                weight === "袋"
+            ) {
+
+                if (
+                    !Array.isArray(
+                        record.items
+                    )
+                ) {
+                    return;
+                }
+
+
+                record.items.forEach(
+                    item => {
+
+                        const grade =
+                            item.grade ||
+                            "袋";
+
+
+                        const quantity =
+                            Number(
+                                item.quantity
+                            ) || 0;
+
+
+                        if (
+                            quantity <= 0
+                        ) {
+                            return;
+                        }
+
+
+                        if (
+                            !shipmentSummary
+                                ["袋"]
+                                ["袋"]
+                                [grade]
+                        ) {
+
+                            shipmentSummary
+                                ["袋"]
+                                ["袋"]
+                                [grade] = 0;
+
+                        }
+
+
+                        shipmentSummary
+                            ["袋"]
+                            ["袋"]
+                            [grade] +=
+                                quantity;
+
+                    }
+                );
+
+
+                return;
+
+            }
+
+
+            // ==================================
+            // 4kg / 2kg
+            // ==================================
+
+            const packageName =
+                record.package ||
+                "未設定";
+
+
+            if (
+                !shipmentSummary
+                    [weight]
+                    [packageName]
+            ) {
+
+                shipmentSummary
+                    [weight]
+                    [packageName] = {};
+
+            }
+
+
+            if (
+                !Array.isArray(
+                    record.items
+                )
+            ) {
+                return;
+            }
+
+
+            record.items.forEach(
+                item => {
+
+                    const grade =
+                        item.grade ||
+                        "不明";
+
+
+                    const quantity =
+                        Number(
+                            item.quantity
+                        ) || 0;
+
+
+                    if (
+                        quantity <= 0
+                    ) {
+                        return;
+                    }
+
+
+                    if (
+                        !shipmentSummary
+                            [weight]
+                            [packageName]
+                            [grade]
+                    ) {
+
+                        shipmentSummary
+                            [weight]
+                            [packageName]
+                            [grade] = 0;
+
+                    }
+
+
+                    shipmentSummary
+                        [weight]
+                        [packageName]
+                        [grade] +=
+                            quantity;
+
+                }
+            );
+
+        }
+    );
+
+
+    // ========================================
+    // 重量別の売上データ
+    //
+    // 各出荷記録の日付から価格を取得し、
+    // 実際の売上を積み上げる
+    // ========================================
+
+    function getWeightSalesData(
+        weight
+    ) {
+
+        const gradeData = {};
+
+
+        let totalSales = 0;
+
+
+        let hasPrice = false;
+
+
+        records
+            .filter(
+                record =>
+                    record.weight ===
+                    weight
+            )
+            .forEach(
+                record => {
+
+                    if (
+                        !Array.isArray(
+                            record.items
+                        )
+                    ) {
+                        return;
+                    }
+
+
+                    record.items.forEach(
+                        item => {
+
+                            const quantity =
+                                Number(
+                                    item.quantity
+                                ) || 0;
+
+
+                            if (
+                                quantity <= 0
+                            ) {
+                                return;
+                            }
+
+
+                            // ----------------
+                            // その日の単価
+                            // ----------------
+
+                            const price =
+                                getPrice(
+                                    record.weight,
+                                    item.grade,
+                                    record.date
+                                );
+
+
+                            // ----------------
+                            // 初期化
+                            // ----------------
+
+                            if (
+                                !gradeData[
+                                    item.grade
+                                ]
+                            ) {
+
+                                gradeData[
+                                    item.grade
+                                ] = {
+
+                                    quantity: 0,
+
+                                    sales: 0
+
+                                };
+
+                            }
+
+
+                            // ----------------
+                            // 数量
+                            // ----------------
+
+                            gradeData[
+                                item.grade
+                            ].quantity +=
+                                quantity;
+
+
+                            // ----------------
+                            // 売上
+                            // ----------------
+
+                            if (
+                                price != null
+                            ) {
+
+                                const itemSales =
+                                    price *
+                                    quantity;
+
+
+                                gradeData[
+                                    item.grade
+                                ].sales +=
+                                    itemSales;
+
+
+                                totalSales +=
+                                    itemSales;
+
+
+                                hasPrice =
+                                    true;
+
+                            }
+
+                        }
+                    );
+
+                }
+            );
+
+
+        return {
+
+            gradeData,
+
+            totalSales,
+
+            hasPrice
+
+        };
+
+    }
+
+
+    // ========================================
+    // 売上・単価HTML
+    // ========================================
+
+    function createSalesHtml(
+        weight
+    ) {
+
+        const data =
+            getWeightSalesData(
+                weight
+            );
+
+
+        const entries =
+            Object.entries(
+                data.gradeData
+            );
+
+
+        if (
+            entries.length === 0
+        ) {
+            return "";
+        }
+
+
+        const quantityUnit =
+            weight === "袋"
+                ? "袋"
+                : "箱";
+
+
+        const gradeHtml =
+            entries
+                .map(
+                    (
+                        [
+                            grade,
+                            value
+                        ]
+                    ) => {
+
+                        // --------------------
+                        // 実績単価
+                        //
+                        // 合計売上 ÷ 合計数量
+                        // --------------------
+
+                        const actualPrice =
+                            value.sales > 0 &&
+                            value.quantity > 0
+                                ? value.sales /
+                                  value.quantity
+                                : null;
+
+
+                        // --------------------
+                        // 価格未登録
+                        // --------------------
+
+                        if (
+                            actualPrice == null
+                        ) {
+
+                            return `
+
+                                <div
+                                    class="card"
+                                    style="
+                                        margin-bottom:
+                                            8px;
+                                    "
+                                >
+
+                                    <div
+                                        class="
+                                            record-row
+                                        "
+                                    >
+
+                                        <strong>
+                                            ${grade}
+                                        </strong>
+
+                                        <span>
+                                            価格未登録
+                                        </span>
+
+                                    </div>
+
+
+                                    <div>
+                                        ${
+                                            value.quantity
+                                        }${quantityUnit}
+                                    </div>
+
+                                </div>
+
+                            `;
+
+                        }
+
+
+                        // --------------------
+                        // 実績単価・売上
+                        // --------------------
+
+                        return `
+
+                            <div
+                                class="card"
+                                style="
+                                    margin-bottom:
+                                        8px;
+                                "
+                            >
+
+                                <div
+                                    class="
+                                        record-row
+                                    "
+                                >
+
+                                    <strong>
+                                        ${grade}
+                                    </strong>
+
+                                    <strong>
+                                        実績単価
+                                       　
+                                        ${
+                                            Math.round(
+                                                actualPrice
+                                            )
+                                                .toLocaleString()
+                                        }円
+                                    </strong>
+
+                                </div>
+
+
+                                <div>
+
+                                    出荷数量：
+                                    ${
+                                        value.quantity
+                                    }${quantityUnit}
+
+                                </div>
+
+
+                                <div
+                                    style="
+                                        text-align:
+                                            right;
+                                        font-weight:
+                                            bold;
+                                    "
+                                >
+
+                                    売上：
+                                    ${
+                                        value.sales
+                                            .toLocaleString()
+                                    }円
+
+                                </div>
+
+                            </div>
+
+                        `;
+
+                    }
+                )
+                .join("");
+
+
+        // ====================================
+        // 重量別売上
+        // ====================================
+
+        const totalHtml =
+            data.hasPrice
+
+                ? `
+
+                    <div
+                        class="card"
+                        style="
+                            margin-top: 10px;
+                        "
+                    >
+
+                        <div
+                            class="
+                                record-row
+                            "
+                        >
+
+                            <strong>
+                                ${weight}売上合計
+                            </strong>
+
+                            <strong>
+                                ${
+                                    data.totalSales
+                                        .toLocaleString()
+                                }円
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                `
+
+                : `
+
+                    <div
+                        class="card"
+                    >
+
+                        価格未登録
+
+                    </div>
+
+                `;
+
+
+        // ====================================
+        // 開閉式
+        // ====================================
+
+        return `
+
+            <details>
+
+                <summary
+                    style="
+                        cursor: pointer;
+                        font-weight: bold;
+                        padding: 10px 0;
+                    "
+                >
+
+                    💰 売上・単価
+
+                </summary>
+
+
+                <div
+                    style="
+                        padding:
+                            5px 0 10px 0;
+                    "
+                >
+
+                    ${gradeHtml}
+
+                    ${totalHtml}
+
+                </div>
+
+            </details>
+
+        `;
+
+    }
+
+
+    // ========================================
+    // 包装別ブロック
+    // ========================================
+
+    function createPackageHtml(
+        weight,
+        packageName
+    ) {
+
+        const gradeData =
+            shipmentSummary
+                [weight]
+                [packageName];
+
+
+        const grades =
+            Object.entries(
+                gradeData
+            );
+
+
+        if (
+            grades.length === 0
+        ) {
+            return "";
+        }
+
+
+        let packageTotal = 0;
+
+
+        grades.forEach(
+            (
+                [
+                    grade,
+                    quantity
+                ]
+            ) => {
+
+                packageTotal +=
+                    quantity;
+
+            }
+        );
+
+
+        const gradeHtml =
+            grades
+                .map(
+                    (
+                        [
+                            grade,
+                            quantity
+                        ]
+                    ) => `
+
+                        <div
+                            class="
+                                record-row
+                            "
+                        >
+
+                            <span>
+                                ${grade}
+                            </span>
+
+                            <strong>
+                                ${quantity}箱
+                            </strong>
+
+                        </div>
+
+                    `
+                )
+                .join("");
+
+
+        return `
+
+            <div
+                class="card"
+                style="
+                    margin-bottom:
+                        10px;
+                "
+            >
+
+                <h4>
+                    📦 ${packageName}
+                </h4>
+
+
+                ${gradeHtml}
+
+
+                <hr>
+
+
+                <div
+                    class="
+                        record-row
+                    "
+                >
+
+                    <strong>
+                        小計
+                    </strong>
+
+                    <strong>
+                        ${packageTotal}箱
+                    </strong>
+
+                </div>
+
+            </div>
+
+        `;
+
+    }
+
+
+    // ========================================
+    // 重量別ブロック
+    // ========================================
+
+    function createWeightHtml(
+        weight
+    ) {
+
+        const weightData =
+            shipmentSummary[
+                weight
+            ];
+
+
+        let packageHtml = "";
+
+
+        let weightTotal = 0;
+
+
+        const gradeSummary = {};
+
+
+        // ------------------------------------
+        // 包装別
+        // ------------------------------------
+
+        Object.entries(
+            weightData
+        )
+        .forEach(
+            (
+                [
+                    packageName,
+                    gradeData
+                ]
+            ) => {
+
+                const grades =
+                    Object.entries(
+                        gradeData
+                    );
+
+
+                if (
+                    grades.length === 0
+                ) {
+                    return;
+                }
+
+
+                packageHtml +=
+                    createPackageHtml(
+                        weight,
+                        packageName
+                    );
+
+
+                grades.forEach(
+                    (
+                        [
+                            grade,
+                            quantity
+                        ]
+                    ) => {
+
+                        weightTotal +=
+                            quantity;
+
+
+                        if (
+                            !gradeSummary[
+                                grade
+                            ]
+                        ) {
+
+                            gradeSummary[
+                                grade
+                            ] = 0;
+
+                        }
+
+
+                        gradeSummary[
+                            grade
+                        ] +=
+                            quantity;
+
+                    }
+                );
+
+            }
+        );
+
+
+        if (
+            weightTotal === 0
+        ) {
+            return "";
+        }
+
+
+        // ------------------------------------
+        // 重量合計
+        // ------------------------------------
+
+        const weightTotalHtml = `
+
+            <div
+                class="card"
+                style="
+                    margin-top:
+                        10px;
+                    margin-bottom:
+                        10px;
+                "
+            >
+
+                <div
+                    class="
+                        record-row
+                    "
+                >
+
+                    <strong>
+                        ${weight}合計
+                    </strong>
+
+                    <strong>
+                        ${weightTotal}箱
+                    </strong>
+
+                </div>
+
+            </div>
+
+        `;
+
+
+        // ------------------------------------
+        // 規格別合計
+        // ------------------------------------
+
+        const gradeSummaryHtml =
+            Object.entries(
+                gradeSummary
+            )
+            .map(
+                (
+                    [
+                        grade,
+                        quantity
+                    ]
+                ) => `
+
+                    <div
+                        class="
+                            record-row
+                        "
+                    >
+
+                        <span>
+                            ${grade}
+                        </span>
+
+                        <strong>
+                            ${quantity}箱
+                        </strong>
+
+                    </div>
+
+                `
+            )
+            .join("");
+
+
+        const gradeSummaryCard = `
+
+            <div
+                class="card"
+                style="
+                    margin-bottom:
+                        15px;
+                "
+            >
+
+                <h4>
+                    📊
+                    ${weight}
+                    規格別合計
+                </h4>
+
+                ${gradeSummaryHtml}
+
+            </div>
+
+        `;
+
+
+        // ------------------------------------
+        // 売上・単価
+        // ------------------------------------
+
+        const salesHtml =
+            createSalesHtml(
+                weight
+            );
+
+
+        return `
+
+            <div>
+
+                <h3>
+                    📦 ${weight}
+                </h3>
+
+
+                ${packageHtml}
+
+
+                ${weightTotalHtml}
+
+
+                ${gradeSummaryCard}
+
+
+                ${salesHtml}
+
+            </div>
+
+        `;
+
+    }
+
+
+    // ========================================
+    // 袋
+    // ========================================
+
+    function createBagHtml() {
+
+        const gradeData =
+            shipmentSummary
+                ["袋"]
+                ["袋"];
+
+
+        const grades =
+            Object.entries(
+                gradeData
+            );
+
+
+        if (
+            grades.length === 0
+        ) {
+            return "";
+        }
+
+
+        let total = 0;
+
+
+        grades.forEach(
+            (
+                [
+                    grade,
+                    quantity
+                ]
+            ) => {
+
+                total +=
+                    quantity;
+
+            }
+        );
+
+
+        const gradeHtml =
+            grades
+                .map(
+                    (
+                        [
+                            grade,
+                            quantity
+                        ]
+                    ) => `
+
+                        <div
+                            class="
+                                record-row
+                            "
+                        >
+
+                            <span>
+                                ${grade}
+                            </span>
+
+                            <strong>
+                                ${quantity}袋
+                            </strong>
+
+                        </div>
+
+                    `
+                )
+                .join("");
+
+
+        const salesHtml =
+            createSalesHtml(
+                "袋"
+            );
+
+
+        return `
+
+            <div>
+
+                <h3>
+                    🛍 袋
+                </h3>
+
+
+                <div
+                    class="card"
+                >
+
+                    ${gradeHtml}
+
+
+                    <hr>
+
+
+                    <div
+                        class="
+                            record-row
+                        "
+                    >
+
+                        <strong>
+                            袋合計
+                        </strong>
+
+                        <strong>
+                            ${total}袋
+                        </strong>
+
+                    </div>
+
+
+                    ${salesHtml}
+
+                </div>
+
+            </div>
+
+        `;
+
+    }
+
+
+
+    // ========================================
+    // 最終HTML
+    // ========================================
+
+    return `
+
+        <div>
+
+            <!-- ==========================
+                 4kg
+            =========================== -->
+
+            ${createWeightHtml("4kg")}
+
+
+            <!-- ==========================
+                 2kg
+            =========================== -->
+
+            ${createWeightHtml("2kg")}
+
+
+            <!-- ==========================
+                 袋
+            =========================== -->
+
+            ${createBagHtml()}
+
+        </div>
+
+    `;
+
+}
+
 function clearShipmentHistorySearch() {
 
     document.getElementById("shipmentHistoryYear").value = "";
