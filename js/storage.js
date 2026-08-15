@@ -179,7 +179,7 @@ function importBackup() {
             // データ展開
             fieldMaster = backupData.fieldMaster || [];
             workMaster = backupData.workMaster || [];
-            materialMaster = backupData.materialMaster || []; // ← ここに stock も含まれて復元されます
+            materialMaster = backupData.materialMaster || []; 
             recordList = backupData.recordList || [];
             fertilizerPlanList = backupData.fertilizerPlanList || [];
             templateMaster = backupData.templateMaster || [];

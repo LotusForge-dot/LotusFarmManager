@@ -483,9 +483,14 @@ function renderShipmentHistory() {
 
     let records = [...shipmentRecords];
 
+    // ========================================
     // 年
+    // ========================================
+
     const year =
-        document.getElementById("shipmentHistoryYear").value;
+        document.getElementById(
+            "shipmentHistoryYear"
+        ).value;
 
     if (year !== "") {
 
@@ -495,9 +500,15 @@ function renderShipmentHistory() {
 
     }
 
+
+    // ========================================
     // 田んぼ
+    // ========================================
+
     const field =
-        document.getElementById("shipmentHistoryField").value;
+        document.getElementById(
+            "shipmentHistoryField"
+        ).value;
 
     if (field !== "") {
 
@@ -507,9 +518,15 @@ function renderShipmentHistory() {
 
     }
 
+
+    // ========================================
     // 出荷先
+    // ========================================
+
     const destination =
-        document.getElementById("shipmentHistoryDestination").value;
+        document.getElementById(
+            "shipmentHistoryDestination"
+        ).value;
 
     if (destination !== "") {
 
@@ -519,9 +536,15 @@ function renderShipmentHistory() {
 
     }
 
+
+    // ========================================
     // 開始日
+    // ========================================
+
     const from =
-        document.getElementById("shipmentHistoryFrom").value;
+        document.getElementById(
+            "shipmentHistoryFrom"
+        ).value;
 
     if (from !== "") {
 
@@ -531,9 +554,15 @@ function renderShipmentHistory() {
 
     }
 
+
+    // ========================================
     // 終了日
+    // ========================================
+
     const to =
-        document.getElementById("shipmentHistoryTo").value;
+        document.getElementById(
+            "shipmentHistoryTo"
+        ).value;
 
     if (to !== "") {
 
@@ -543,153 +572,391 @@ function renderShipmentHistory() {
 
     }
 
+
+    // ========================================
+    // 該当なし
+    // ========================================
+
     if (records.length === 0) {
 
         list.innerHTML = `
+
             <div class="card">
+
                 出荷履歴はありません。
+
             </div>
+
         `;
 
         return;
 
     }
 
+
+    // ========================================
+    // 日々の出荷履歴
+    //
+    // 閉じた状態：
+    // 日付 / ほ場No. / 合計数量 / 売上
+    //
+    // 開いた状態：
+    // 出荷先 / 重量 / 包装 / 規格別明細
+    // ========================================
+
     let html = "";
+
 
     records
         .slice()
-        .reverse()
-        .forEach((record) => {
+        .sort(
+            (a, b) =>
+                b.date.localeCompare(a.date)
+        )
+        .forEach(record => {
 
-            const totalBoxes =
-                record.items.reduce(
-                    (sum, item) =>
-                        sum + Number(item.quantity),
-                    0
-                );
+            // --------------------------------
+            // 合計数量
+            // --------------------------------
+
+            const totalQuantity =
+                Array.isArray(record.items)
+                    ? record.items.reduce(
+                        (
+                            sum,
+                            item
+                        ) =>
+                            sum +
+                            (
+                                Number(
+                                    item.quantity
+                                ) || 0
+                            ),
+                        0
+                    )
+                    : 0;
+
+
+            const quantityUnit =
+                record.weight === "袋"
+                    ? "袋"
+                    : "箱";
+
+
+            // --------------------------------
+            // その日の売上
+            // --------------------------------
 
             const sales =
                 getShipmentSales(record);
 
-            html += `
 
-                <div class="card">
+            // --------------------------------
+            // 規格別明細
+            // --------------------------------
 
-                    <b>${record.date}</b>
+            const itemsHtml =
+                Array.isArray(record.items)
+                    ? record.items
+                        .map(item => {
 
-                    <br>
+                            const price =
+                                getPrice(
+                                    record.weight,
+                                    item.grade,
+                                    record.date
+                                );
 
-                    田んぼ：No.${record.fieldNo}
 
-                    <br>
+                            const quantity =
+                                Number(
+                                    item.quantity
+                                ) || 0;
 
-                    出荷先：${record.destination}
 
-                    <br><br>
+                            const itemSales =
+                                price == null
+                                    ? null
+                                    : price * quantity;
 
-                    <b>${record.weight}</b>
-                    &nbsp;&nbsp;
-                    <b>${record.package}</b>
 
-                    <br>
+                            return `
 
-                    <b>
-                        合計：${totalBoxes}${record.weight === "袋" ? "袋" : "箱"}
-                    </b>
+                                <div
+                                    class="
+                                        shipment-sale-row
+                                    "
+                                >
 
-                    <br>
-
-                    <b>
-                        💰 売上：
-                        ${
-                            sales == null
-                                ? "価格未登録"
-                                : sales.toLocaleString() + "円"
-                        }
-                    </b>
-
-                    <hr>
-
-            `;
-
-            record.items.forEach(item => {
-
-                const price = getPrice(
-                    record.weight,
-                    item.grade,
-                    record.date
-                );
-
-                const itemSales =
-                    price == null
-                        ? null
-                        : price * Number(item.quantity);
-
-                html += `
-
-                    <div class="shipment-sale-row">
-
-                        <span class="shipment-sale-grade">
-                            ${item.grade}
-                        </span>
-
-                        ${
-                            price == null
-                                ? `
-                                    <span style="flex:1;">
-                                        価格未登録
-                                    </span>
-                                `
-                                : `
-                                    <span class="shipment-sale-price">
-                                        ${price.toLocaleString()}円
+                                    <span
+                                        class="
+                                            shipment-sale-grade
+                                        "
+                                    >
+                                        ${item.grade}
                                     </span>
 
-                                    <span class="shipment-sale-quantity">
-                                        × ${item.quantity}${record.weight === "袋" ? "袋" : "箱"}
-                                    </span>
 
-                                    <span class="shipment-sale-total">
-                                        = ${itemSales.toLocaleString()}円
-                                    </span>
-                                `
-                        }
+                                    ${
+                                        price == null
 
-                    </div>
+                                            ? `
 
-                `;
+                                                <span
+                                                    style="
+                                                        flex:1;
+                                                    "
+                                                >
+                                                    価格未登録
+                                                </span>
 
-            });
+                                            `
+
+                                            : `
+
+                                                <span
+                                                    class="
+                                                        shipment-sale-price
+                                                    "
+                                                >
+                                                    ${
+                                                        price
+                                                            .toLocaleString()
+                                                    }円
+                                                </span>
+
+
+                                                <span
+                                                    class="
+                                                        shipment-sale-quantity
+                                                    "
+                                                >
+                                                    ×
+                                                    ${quantity}
+                                                    ${quantityUnit}
+                                                </span>
+
+
+                                                <span
+                                                    class="
+                                                        shipment-sale-total
+                                                    "
+                                                >
+                                                    =
+                                                    ${
+                                                        itemSales
+                                                            .toLocaleString()
+                                                    }円
+                                                </span>
+
+                                            `
+                                    }
+
+                                </div>
+
+                            `;
+
+                        })
+                        .join("")
+                    : "";
+
 
             const originalIndex =
                 shipmentRecords.indexOf(record);
 
+
+            // --------------------------------
+            // 閉じた状態
+            // --------------------------------
+
             html += `
 
-                    <hr>
+                <details
+                    style="
+                        margin-bottom:
+                            10px;
+                    "
+                >
 
-                    <button
-                        onclick="editShipmentRecord(${originalIndex})">
-                        編集
-                    </button>
+                    <summary
+                        style="
+                            cursor:
+                                pointer;
+                            padding:
+                                12px;
+                            font-weight:
+                                bold;
+                        "
+                    >
+                        ${record.date}
 
-                    <button
-                        onclick="deleteShipmentRecord(${originalIndex})">
-                        削除
-                    </button>
+                       　
 
-                </div>
+                        No.${record.fieldNo}
+
+                       　
+
+                        ${totalQuantity}
+                        ${quantityUnit}
+
+                        ${
+                            sales == null
+                                ? ""
+                                : `
+                                   　
+                                    💰
+                                    ${
+                                        sales
+                                            .toLocaleString()
+                                    }円
+                                `
+                        }
+
+                    </summary>
+
+
+                    <!-- ======================
+                         開いた状態
+                    ======================= -->
+
+                    <div
+                        class="card"
+                        style="
+                            margin-top:
+                                8px;
+                        "
+                    >
+
+                        <div>
+                            出荷先：
+                            ${
+                                record.destination ||
+                                ""
+                            }
+                        </div>
+
+
+                        <div>
+                            重量：
+                            ${
+                                record.weight ||
+                                ""
+                            }
+                        </div>
+
+
+                        ${
+                            record.weight !== "袋" &&
+                            record.package
+                                ? `
+                                    <div>
+                                        包装：
+                                        ${record.package}
+                                    </div>
+                                `
+                                : ""
+                        }
+
+
+                        <hr>
+
+
+                        ${itemsHtml}
+
+
+                        <hr>
+
+
+                        <div
+                            class="
+                                record-row
+                            "
+                        >
+
+                            <strong>
+                                合計
+                            </strong>
+
+                            <strong>
+                                ${totalQuantity}
+                                ${quantityUnit}
+                            </strong>
+
+                        </div>
+
+
+                        <div
+                            class="
+                                record-row
+                            "
+                        >
+
+                            <strong>
+                                💰 売上
+                            </strong>
+
+                            <strong>
+                                ${
+                                    sales == null
+                                        ? "価格未登録"
+                                        : sales
+                                            .toLocaleString()
+                                            + "円"
+                                }
+                            </strong>
+
+                        </div>
+
+
+                        <hr>
+
+
+                        <button
+                            onclick="
+                                editShipmentRecord(
+                                    ${originalIndex}
+                                )
+                            "
+                        >
+                            編集
+                        </button>
+
+
+                        <button
+                            onclick="
+                                deleteShipmentRecord(
+                                    ${originalIndex}
+                                )
+                            "
+                        >
+                            削除
+                        </button>
+
+                    </div>
+
+                </details>
 
             `;
 
         });
 
+
+    // ========================================
+    // 集計
+    // ========================================
+
     renderShipmentSummary(records);
+
+
+    // ========================================
+    // 履歴表示
+    // ========================================
 
     list.innerHTML = html;
 
 }
+
+
 function clearShipmentHistorySearch() {
 
     document.getElementById("shipmentHistoryYear").value = "";

@@ -71,11 +71,33 @@ function showHistory() {
 
     let historyHtml = "";
 
+
+    // ========================================
+    // 出荷履歴
+    // ========================================
     if (historyTab === "shipment") {
 
-        historyHtml = getShipmentHistoryHtml();
+        historyHtml =
+            getShipmentHistoryHtml();
 
-    } else {
+    }
+
+
+    // ========================================
+    // ほ場詳細
+    // ========================================
+    else if (historyTab === "field") {
+
+    historyHtml =
+        getFieldDetailHtml();
+
+}
+
+
+    // ========================================
+    // 作業履歴
+    // ========================================
+    else {
 
         historyHtml = `
 
@@ -105,13 +127,19 @@ function showHistory() {
 
                 <label>開始日</label>
 
-                <input type="date" id="historyFrom">
+                <input
+                    type="date"
+                    id="historyFrom"
+                >
 
                 <br><br>
 
                 <label>終了日</label>
 
-                <input type="date" id="historyTo">
+                <input
+                    type="date"
+                    id="historyTo"
+                >
 
                 <button id="btnClearHistorySearch">
                     🧹 検索条件クリア
@@ -131,6 +159,11 @@ function showHistory() {
 
     }
 
+
+    // ========================================
+    // 画面全体
+    // ========================================
+
     app.innerHTML = `
 
         <h2>📋 履歴</h2>
@@ -138,19 +171,32 @@ function showHistory() {
         <div class="tab-container">
 
             <button
-                class="${historyTab === "shipment" ? "tab active" : "tab"}"
-                onclick="changeHistoryTab('shipment')">
-
+                class="${historyTab === "shipment"
+                    ? "tab active"
+                    : "tab"}"
+                onclick="changeHistoryTab('shipment')"
+            >
                 📦 出荷
-
             </button>
 
+
             <button
-                class="${historyTab === "work" ? "tab active" : "tab"}"
-                onclick="changeHistoryTab('work')">
-
+                class="${historyTab === "work"
+                    ? "tab active"
+                    : "tab"}"
+                onclick="changeHistoryTab('work')"
+            >
                 🌱 作業
+            </button>
 
+
+            <button
+                class="${historyTab === "field"
+                    ? "tab active"
+                    : "tab"}"
+                onclick="changeHistoryTab('field')"
+            >
+                🌾 ほ場
             </button>
 
         </div>
@@ -159,7 +205,11 @@ function showHistory() {
 
     `;
 
-    // 作業履歴だけ検索イベントを設定
+
+    // ========================================
+    // 作業履歴イベント
+    // ========================================
+
     if (historyTab === "work") {
 
         renderHistoryFieldOptions();
@@ -168,62 +218,141 @@ function showHistory() {
 
         renderHistoryList();
 
+
         document
             .getElementById("historyWork")
-            .addEventListener("change", renderHistoryList);
+            .addEventListener(
+                "change",
+                renderHistoryList
+            );
+
 
         document
             .getElementById("historyField")
-            .addEventListener("change", renderHistoryList);
+            .addEventListener(
+                "change",
+                renderHistoryList
+            );
+
 
         document
             .getElementById("historyFrom")
-            .addEventListener("change", renderHistoryList);
+            .addEventListener(
+                "change",
+                renderHistoryList
+            );
+
 
         document
             .getElementById("historyTo")
-            .addEventListener("change", renderHistoryList);
+            .addEventListener(
+                "change",
+                renderHistoryList
+            );
+
 
         document
             .getElementById("historyYear")
-            .addEventListener("change", renderHistoryList);
+            .addEventListener(
+                "change",
+                renderHistoryList
+            );
+
 
         document
-            .getElementById("btnClearHistorySearch")
-            .addEventListener("click", clearHistorySearch);
+            .getElementById(
+                "btnClearHistorySearch"
+            )
+            .addEventListener(
+                "click",
+                clearHistorySearch
+            );
 
     }
-if (historyTab === "shipment") {
 
-    renderShipmentHistoryFieldOptions();
-    renderShipmentHistoryYearOptions();
 
-    renderShipmentHistory();
+    // ========================================
+    // 出荷履歴イベント
+    // ========================================
 
-    document
-        .getElementById("shipmentHistoryYear")
-        .addEventListener("change", renderShipmentHistory);
+    if (historyTab === "shipment") {
 
-    document
-        .getElementById("shipmentHistoryField")
-        .addEventListener("change", renderShipmentHistory);
+        renderShipmentHistoryFieldOptions();
+        renderShipmentHistoryYearOptions();
 
-    document
-        .getElementById("shipmentHistoryDestination")
-        .addEventListener("change", renderShipmentHistory);
+        renderShipmentHistory();
 
-    document
-        .getElementById("shipmentHistoryFrom")
-        .addEventListener("change", renderShipmentHistory);
+        document
+            .getElementById(
+                "shipmentHistoryYear"
+            )
+            .addEventListener(
+                "change",
+                renderShipmentHistory
+            );
 
-    document
-        .getElementById("shipmentHistoryTo")
-        .addEventListener("change", renderShipmentHistory);
 
-    document
-        .getElementById("btnClearShipmentHistorySearch")
-        .addEventListener("click", clearShipmentHistorySearch);
-renderShipmentHistoryDestinationOptions();
+        document
+            .getElementById(
+                "shipmentHistoryField"
+            )
+            .addEventListener(
+                "change",
+                renderShipmentHistory
+            );
+
+
+        document
+            .getElementById(
+                "shipmentHistoryDestination"
+            )
+            .addEventListener(
+                "change",
+                renderShipmentHistory
+            );
+
+
+        document
+            .getElementById(
+                "shipmentHistoryFrom"
+            )
+            .addEventListener(
+                "change",
+                renderShipmentHistory
+            );
+
+
+        document
+            .getElementById(
+                "shipmentHistoryTo"
+            )
+            .addEventListener(
+                "change",
+                renderShipmentHistory
+            );
+
+
+        document
+            .getElementById(
+                "btnClearShipmentHistorySearch"
+            )
+            .addEventListener(
+                "click",
+                clearShipmentHistorySearch
+            );
+
+
+        renderShipmentHistoryDestinationOptions();
+
+    }
+// ========================================
+// ほ場詳細
+// ========================================
+
+if (historyTab === "field") {
+
+    initFieldDetail();
+
 }
 }
 // ------------------------
