@@ -3105,7 +3105,64 @@ function calculateHistorySummary(
 
 }
 
+// ==========================================
+// 指定日以降の資材使用量を集計
+// ==========================================
+// 在庫計算用。
+// 資材マスターに登録した基準日以降の作業履歴だけを対象にして、
+// 既存の calculateHistorySummary() を利用して使用量を集計する。
+//
+// calculateHistorySummary() 側ですでに、
+// ・通常作業 → 保存されている使用量をそのまま集計
+// ・葉面散布 / 除草 → 内容量から使用本数などへ換算
+// という処理を行っているため、ここでは新たな単位変換を行わない。
+//
+// 戻り値：
+// {
+//     "資材名": {
+//         amount: 使用量,
+//         cost: 使用金額,
+//         unit: 管理単位
+//     }
+// }
+function calculateMaterialUsageSince(stockDate) {
 
+    // 基準日が指定されていない場合は、
+    // 使用量を0として扱う
+    if (!stockDate) {
+        return {};
+    }
+
+
+    // ----------------------------------------
+    // 基準日以降の作業記録だけを抽出
+    // ----------------------------------------
+    const records =
+        Array.isArray(recordList)
+            ? recordList.filter(record =>
+                record &&
+                record.date &&
+                record.date >= stockDate
+            )
+            : [];
+
+
+    // ----------------------------------------
+    // 既存の履歴集計処理を利用
+    // ----------------------------------------
+    const summary =
+        calculateHistorySummary(records);
+
+
+    // ----------------------------------------
+    // 資材別使用量だけを返す
+    // ----------------------------------------
+    return summary &&
+        summary.materialSummary
+        ? summary.materialSummary
+        : {};
+
+}
 function addSprayMaterial() {
 
     const materialIndex =
@@ -3579,6 +3636,7 @@ function showOtherEdit() {
     [material],
     material.material
 )}
+
 
                     </select>
 
@@ -4218,9 +4276,26 @@ function renderFertilizerSummaryList() {
 
         totalCost += cost;
 
-        // 現在在庫
-        const stock =
-            Number(master.stock) || 0;
+        // ----------------------------------------
+// 現在在庫
+// ----------------------------------------
+// 資材マスターの基準在庫から、
+// 基準日以降の実際の使用量を差し引く。
+const usage =
+    calculateMaterialUsageSince(
+        master.stockDate
+    );
+
+const used =
+    usage[master.name]
+        ? Number(
+            usage[master.name].amount
+        ) || 0
+        : 0;
+
+const stock =
+    (Number(master.stock) || 0) -
+    used;
 
         // 不足数量
         const shortage =

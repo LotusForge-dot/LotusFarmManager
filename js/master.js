@@ -408,8 +408,17 @@ function renderMaterialMaster() {
             <input type="number" id="materialPrice"><br><br>
             <hr>
 
-            <label>現在在庫</label><br>
-            <input type="number" id="materialStock"><br><br>
+            <label>基準在庫</label><br>
+<input
+    type="number"
+    id="materialStock"
+><br><br>
+
+<label>在庫基準日</label><br>
+<input
+    type="date"
+    id="materialStockDate"
+><br><br>
 
             <h3>登録倍率</h3>
             <div id="dilutionList"></div>
@@ -447,6 +456,7 @@ function renderMaterialMaster() {
             document.getElementById("materialK").value = material.k || 0;
             document.getElementById("materialPrice").value = material.price || 0;
             document.getElementById("materialStock").value = material.stock || 0;
+            document.getElementById("materialStockDate").value =  material.stockDate || "";
             document.getElementById("materialCategory").value = material.category || "fertilizer";     
 
             document.querySelectorAll("#workCheckList input[type='checkbox']").forEach(check => {
@@ -462,109 +472,396 @@ function toggleMaterialForm() {
     renderMaterialMaster();
 }
 
+// ==========================================
+// 資材マスター一覧表示
+// ==========================================
 function renderMaterialList() {
-    const list = document.getElementById("materialList");
 
+    const list =
+        document.getElementById("materialList");
+
+
+    // ----------------------------------------
+    // 資材が登録されていない場合
+    // ----------------------------------------
     if (materialMaster.length === 0) {
-        list.innerHTML = "<p>まだ登録されていません。</p>";
+
+        list.innerHTML =
+            "<p>まだ登録されていません。</p>";
+
         return;
+
     }
+
 
     let html = "";
 
-    MATERIAL_CATEGORIES.forEach(category => {
-        const materials = materialMaster.filter(
-            material => material.category === category.value
-        );
 
-        if (materials.length === 0) return;
+    // ========================================
+    // カテゴリーごとに表示
+    // ========================================
+    MATERIAL_CATEGORIES.forEach(
+        category => {
 
-        html += `
-            <h3>${category.label}</h3>
-            <table border="1" width="100%" cellspacing="0" cellpadding="5">
-                <tr>
-                    <th>資材名</th>
-                    <th>管理単位</th>
-                    <th>内容量</th>
-                    <th>N</th>
-                    <th>P</th>
-                    <th>K</th>
-                    <th>単価</th>
-                    <th>在庫</th>
-                    <th>倍率</th>
-                    <th>使用可能作業</th>
-                    <th>操作</th>
-                </tr>
-        `;
+            const materials =
+                materialMaster.filter(
+                    material =>
+                        material.category ===
+                        category.value
+                );
 
-        materials.forEach(material => {
-            const dilutionsText = (material.dilutions || []).map(v => v + "倍").join("、");
-            const worksText = (material.works || []).join("、");
-            const index = materialMaster.indexOf(material);
 
-            // 内容量の表示（例: 500ml / 20kg）
-            const weightUnitText = material.weightUnit || "kg";
-            const weightDisplay = material.weight ? material.weight + weightUnitText : "";
+            if (materials.length === 0) {
+                return;
+            }
+
 
             html += `
-                <tr>
-                    <td>${material.name}</td>
-                    <td>${material.unit || ""}</td>
-                    <td>${weightDisplay}</td>
-                    <td>${material.n || ""}</td>
-                    <td>${material.p || ""}</td>
-                    <td>${material.k || ""}</td>
-                    <td>${material.price ? material.price.toLocaleString() + "円" : ""}</td>
-                    <td>${material.stock ?? 0}${material.unit || ""}</td>
-                    <td>${dilutionsText}</td>
-                    <td>${worksText}</td>
-                    <td>
-                        <button onclick="editMaterial(${index})">✏️</button>
-                        <button onclick="deleteMaterial(${index})">🗑️</button>
-                    </td>
-                </tr>
+                <h3>${category.label}</h3>
+
+                <table
+                    border="1"
+                    width="100%"
+                    cellspacing="0"
+                    cellpadding="5"
+                >
+
+                    <tr>
+                        <th>資材名</th>
+                        <th>管理単位</th>
+                        <th>内容量</th>
+                        <th>N</th>
+                        <th>P</th>
+                        <th>K</th>
+                        <th>単価</th>
+                        <th>在庫</th>
+                        <th>倍率</th>
+                        <th>使用可能作業</th>
+                        <th>操作</th>
+                    </tr>
             `;
-        });
 
-        html += `</table><br>`;
-    });
 
-    list.innerHTML = html;
+            // ========================================
+            // 資材ごとの表示
+            // ========================================
+            materials.forEach(
+                material => {
+
+                    const dilutionsText =
+                        (material.dilutions || [])
+                            .map(
+                                v =>
+                                    v + "倍"
+                            )
+                            .join("、");
+
+
+                    const worksText =
+                        (material.works || [])
+                            .join("、");
+
+
+                    const index =
+                        materialMaster.indexOf(
+                            material
+                        );
+
+
+                    // --------------------------------
+                    // 内容量表示
+                    // --------------------------------
+                    const weightUnitText =
+                        material.weightUnit ||
+                        "kg";
+
+
+                    const weightDisplay =
+                        material.weight
+                            ? material.weight +
+                              weightUnitText
+                            : "";
+
+
+                    // =================================
+                    // 現在在庫を計算
+                    // =================================
+
+                    const usage =
+                        calculateMaterialUsageSince(
+                            material.stockDate
+                        );
+
+
+                    const used =
+                        usage[material.name]
+                            ? Number(
+                                usage[
+                                    material.name
+                                ].amount
+                              ) || 0
+                            : 0;
+
+
+                    const baseStock =
+                        Number(
+                            material.stock
+                        ) || 0;
+
+
+                    const currentStock =
+                        baseStock - used;
+
+
+                    // --------------------------------
+                    // 在庫表示
+                    // --------------------------------
+                    const stockDisplay =
+                        `${currentStock}${material.unit || ""}`;
+
+
+                    // =================================
+                    // HTML
+                    // =================================
+
+                    html += `
+
+                        <tr>
+
+                            <td>
+                                ${material.name}
+                            </td>
+
+                            <td>
+                                ${material.unit || ""}
+                            </td>
+
+                            <td>
+                                ${weightDisplay}
+                            </td>
+
+                            <td>
+                                ${material.n || ""}
+                            </td>
+
+                            <td>
+                                ${material.p || ""}
+                            </td>
+
+                            <td>
+                                ${material.k || ""}
+                            </td>
+
+                            <td>
+                                ${
+                                    material.price
+                                        ? material.price
+                                            .toLocaleString() +
+                                          "円"
+                                        : ""
+                                }
+                            </td>
+
+                            <td>
+                                ${stockDisplay}
+                            </td>
+
+                            <td>
+                                ${dilutionsText}
+                            </td>
+
+                            <td>
+                                ${worksText}
+                            </td>
+
+                            <td>
+
+                                <button
+                                    onclick="
+                                        editMaterial(
+                                            ${index}
+                                        )
+                                    "
+                                >
+                                    ✏️
+                                </button>
+
+                                <button
+                                    onclick="
+                                        deleteMaterial(
+                                            ${index}
+                                        )
+                                    "
+                                >
+                                    🗑️
+                                </button>
+
+                            </td>
+
+                        </tr>
+
+                    `;
+
+                }
+            );
+
+
+            html += `
+                </table>
+                <br>
+            `;
+
+        }
+    );
+
+
+    // ========================================
+    // 画面へ反映
+    // ========================================
+    list.innerHTML =
+        html;
+
 }
 
 function saveMaterial() {
-    const works = [];
-    document.querySelectorAll("#workCheckList input[type='checkbox']").forEach(check => {
-        if (check.checked) works.push(check.value);
-    });
 
+    // ----------------------------------------
+    // 使用可能作業を取得
+    // ----------------------------------------
+    const works = [];
+
+    document
+        .querySelectorAll(
+            "#workCheckList input[type='checkbox']"
+        )
+        .forEach(check => {
+
+            if (check.checked) {
+                works.push(check.value);
+            }
+
+        });
+
+
+    // ----------------------------------------
+    // 資材データ作成
+    // ----------------------------------------
     const material = {
-        name: document.getElementById("materialName").value,
-        category: document.getElementById("materialCategory").value,
-        unit: document.getElementById("materialUnit").value,
-        weight: Number(document.getElementById("materialWeight").value),
-        weightUnit: document.getElementById("materialWeightUnit").value,
-        n: Number(document.getElementById("materialN").value),
-        p: Number(document.getElementById("materialP").value),
-        k: Number(document.getElementById("materialK").value),
-        price: Number(document.getElementById("materialPrice").value),
-        stock: Number(document.getElementById("materialStock").value),
-        works: works,
-        dilutions: materialDilutions.filter(v => v !== "" && v !== 0).map(Number)
+
+        name:
+            document.getElementById(
+                "materialName"
+            ).value,
+
+        category:
+            document.getElementById(
+                "materialCategory"
+            ).value,
+
+        unit:
+            document.getElementById(
+                "materialUnit"
+            ).value,
+
+        weight:
+            Number(
+                document.getElementById(
+                    "materialWeight"
+                ).value
+            ),
+
+        weightUnit:
+            document.getElementById(
+                "materialWeightUnit"
+            ).value,
+
+        n:
+            Number(
+                document.getElementById(
+                    "materialN"
+                ).value
+            ),
+
+        p:
+            Number(
+                document.getElementById(
+                    "materialP"
+                ).value
+            ),
+
+        k:
+            Number(
+                document.getElementById(
+                    "materialK"
+                ).value
+            ),
+
+        price:
+            Number(
+                document.getElementById(
+                    "materialPrice"
+                ).value
+            ),
+
+        // ------------------------------------
+        // 基準在庫
+        // ------------------------------------
+        stock:
+            Number(
+                document.getElementById(
+                    "materialStock"
+                ).value
+            ),
+
+        // ------------------------------------
+        // 在庫基準日
+        // ------------------------------------
+        stockDate:
+            document.getElementById(
+                "materialStockDate"
+            )?.value || "",
+
+        works:
+            works,
+
+        dilutions:
+            materialDilutions
+                .filter(
+                    v => v !== "" && v !== 0
+                )
+                .map(Number)
+
     };
 
+
+    // ----------------------------------------
+    // 新規登録 / 編集
+    // ----------------------------------------
     if (editingMaterialIndex === -1) {
+
         materialMaster.push(material);
+
     } else {
-        materialMaster[editingMaterialIndex] = material;
+
+        materialMaster[
+            editingMaterialIndex
+        ] = material;
+
         editingMaterialIndex = -1;
+
     }
 
-    materialFormVisible = false;
-    saveMaterialMaster();
-    renderMaterialMaster();
-}
 
+    // ----------------------------------------
+    // 保存・再描画
+    // ----------------------------------------
+    materialFormVisible = false;
+
+    saveMaterialMaster();
+
+    renderMaterialMaster();
+
+}
 function editMaterial(index) {
     editingMaterialIndex = index;
     materialFormVisible = true;
