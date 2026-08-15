@@ -231,6 +231,436 @@ function renderFieldDetailFieldOptions() {
 // ==========================================
 // ほ場詳細表示
 // ==========================================
+// ==========================================
+// ほ場詳細・施肥設計
+// ==========================================
+// 指定した年度・ほ場の施肥設計を表示する。
+// 資材マスターから N・P・K 成分率を取得し、
+// 設計数量からこのほ場への投入量も表示する。
+function getFieldFertilizerPlanHtml(
+    year,
+    fieldNo
+) {
+
+    const plan =
+        typeof getFertilizerPlan === "function"
+            ? getFertilizerPlan(
+                year,
+                fieldNo
+            )
+            : null;
+
+
+    // ----------------------------------------
+    // 施肥設計がない場合
+    // ----------------------------------------
+    if (
+        !plan ||
+        !Array.isArray(plan.materials) ||
+        plan.materials.length === 0
+    ) {
+
+        return `
+
+            <div class="card">
+
+                <p>
+                    この年度の施肥設計はありません。
+                </p>
+
+            </div>
+
+        `;
+
+    }
+
+
+    // ----------------------------------------
+    // 作業グループごとに整理
+    // ----------------------------------------
+    const workGroups = {};
+
+    plan.materials.forEach(material => {
+
+        if (
+            !material ||
+            !material.material
+        ) {
+            return;
+        }
+
+
+        const amount =
+            Number(material.amount) || 0;
+
+
+        if (amount <= 0) {
+            return;
+        }
+
+
+        const work =
+            material.work ||
+            "その他";
+
+
+        if (!workGroups[work]) {
+            workGroups[work] = [];
+        }
+
+
+        workGroups[work].push(material);
+
+    });
+
+
+    const works =
+        Object.keys(workGroups);
+
+
+    if (works.length === 0) {
+
+        return `
+
+            <div class="card">
+
+                <p>
+                    施肥設計の資材がありません。
+                </p>
+
+            </div>
+
+        `;
+
+    }
+
+
+    let totalN = 0;
+    let totalP = 0;
+    let totalK = 0;
+
+
+    // ========================================
+    // 作業グループHTML
+    // ========================================
+
+    const workHtml =
+        works.map(work => {
+
+            const materials =
+                workGroups[work];
+
+
+            const materialHtml =
+                materials.map(material => {
+
+                    const amount =
+                        Number(
+                            material.amount
+                        ) || 0;
+
+
+                    const master =
+                        Array.isArray(
+                            materialMaster
+                        )
+                            ? materialMaster.find(
+                                item =>
+                                    item.name ===
+                                    material.material
+                            )
+                            : null;
+
+
+                    // --------------------------------
+                    // マスターがない場合
+                    // --------------------------------
+
+                    if (!master) {
+
+                        return `
+
+                            <div
+                                class="card"
+                                style="
+                                    margin-bottom:
+                                        8px;
+                                "
+                            >
+
+                                <div
+                                    class="record-row"
+                                >
+
+                                    <strong>
+                                        ${material.material}
+                                    </strong>
+
+                                    <span>
+                                        ${amount}
+                                    </span>
+
+                                </div>
+
+                                <small>
+                                    資材マスター未登録
+                                </small>
+
+                            </div>
+
+                        `;
+
+                    }
+
+
+                    // --------------------------------
+                    // 内容量
+                    // --------------------------------
+
+                    const weight =
+                        Number(
+                            master.weight
+                        ) || 0;
+
+
+                    const totalKg =
+                        amount *
+                        weight;
+
+
+                    // --------------------------------
+                    // NPK成分率
+                    // --------------------------------
+
+                    const nRate =
+                        Number(
+                            master.n
+                        ) || 0;
+
+
+                    const pRate =
+                        Number(
+                            master.p
+                        ) || 0;
+
+
+                    const kRate =
+                        Number(
+                            master.k
+                        ) || 0;
+
+
+                    // --------------------------------
+                    // このほ場への投入量
+                    // --------------------------------
+
+                    const nAmount =
+                        totalKg *
+                        nRate /
+                        100;
+
+
+                    const pAmount =
+                        totalKg *
+                        pRate /
+                        100;
+
+
+                    const kAmount =
+                        totalKg *
+                        kRate /
+                        100;
+
+
+                    totalN += nAmount;
+                    totalP += pAmount;
+                    totalK += kAmount;
+
+
+                    const amountText =
+                        `${amount}${master.unit || ""}`;
+
+
+                    return `
+
+                        <div
+                            class="card"
+                            style="
+                                margin-bottom:
+                                    8px;
+                            "
+                        >
+
+                            <div
+                                class="
+                                    record-row
+                                "
+                            >
+
+                                <strong>
+                                    ${material.material}
+                                </strong>
+
+                                <strong>
+                                    ${amountText}
+                                </strong>
+
+                            </div>
+
+
+                            <div
+                                style="
+                                    margin-top:
+                                        6px;
+                                "
+                            >
+
+                                <small>
+                                    成分率：
+                                    N ${nRate}%
+                                    / P ${pRate}%
+                                    / K ${kRate}%
+                                </small>
+
+                            </div>
+
+
+                            <div
+                                style="
+                                    margin-top:
+                                        6px;
+                                    display:
+                                        flex;
+                                    justify-content:
+                                        space-between;
+                                    gap:
+                                        6px;
+                                    flex-wrap:
+                                        wrap;
+                                "
+                            >
+
+                                <span>
+                                    N
+                                    <strong>
+                                        ${nAmount.toFixed(2)}kg
+                                    </strong>
+                                </span>
+
+                                <span>
+                                    P
+                                    <strong>
+                                        ${pAmount.toFixed(2)}kg
+                                    </strong>
+                                </span>
+
+                                <span>
+                                    K
+                                    <strong>
+                                        ${kAmount.toFixed(2)}kg
+                                    </strong>
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    `;
+
+                })
+                .join("");
+
+
+            return `
+
+                <div
+                    style="
+                        margin-bottom:
+                            14px;
+                    "
+                >
+
+                    <h4>
+                        🌱 ${work}
+                    </h4>
+
+                    ${materialHtml}
+
+                </div>
+
+            `;
+
+        })
+        .join("");
+
+
+    // ========================================
+    // 合計
+    // ========================================
+
+    return `
+
+        <div class="card">
+
+            <h3>
+                🌱 施肥設計
+            </h3>
+
+            ${workHtml}
+
+            <hr>
+
+            <div
+                class="record-row"
+            >
+
+                <strong>
+                    N 合計
+                </strong>
+
+                <strong>
+                    ${totalN.toFixed(2)}kg
+                </strong>
+
+            </div>
+
+
+            <div
+                class="record-row"
+            >
+
+                <strong>
+                    P 合計
+                </strong>
+
+                <strong>
+                    ${totalP.toFixed(2)}kg
+                </strong>
+
+            </div>
+
+
+            <div
+                class="record-row"
+            >
+
+                <strong>
+                    K 合計
+                </strong>
+
+                <strong>
+                    ${totalK.toFixed(2)}kg
+                </strong>
+
+            </div>
+
+        </div>
+
+    `;
+
+}
+
+
 function renderFieldDetail() {
 
     const content =
@@ -335,6 +765,28 @@ function renderFieldDetail() {
 
 
         <!-- ==================================
+             施肥設計
+        =================================== -->
+
+        <details>
+
+            <summary>
+                🌱 施肥設計
+            </summary>
+
+            <div style="padding: 10px;">
+
+                ${getFieldFertilizerPlanHtml(
+                    year,
+                    fieldNo
+                )}
+
+            </div>
+
+        </details>
+
+
+        <!-- ==================================
              施肥実績
         =================================== -->
 
@@ -433,10 +885,10 @@ function renderFieldDetail() {
 
             <div style="padding: 10px;">
 
-                <p>
-                    資材費は
-                    これから追加します。
-                </p>
+                ${getFieldMaterialCostHtml(
+                    year,
+                    fieldNo
+                )}
 
             </div>
 
@@ -2379,6 +2831,787 @@ function getFieldDetailMaterialSummaryHtml(
     `;
 
 }
+// ==========================================
+// ほ場別・年度別 資材費集計
+// ==========================================
+// 指定した年度・ほ場について、
+// 実際に記録された資材の使用量と資材費を
+// 資材マスターのカテゴリーごとに集計する。
+//
+// ・使用量は作業記録の field.materials を使用
+// ・単価は materialMaster.price を使用
+// ・同じ資材は合算
+// ・価格未登録の資材は使用量を表示するが、
+//   資材費合計には含めない
+function calculateFieldMaterialCostSummary(
+    year,
+    fieldNo
+) {
+
+    const summary = {};
+
+    // ----------------------------------------
+    // 資材マスターのカテゴリーを初期化
+    // ----------------------------------------
+    if (Array.isArray(MATERIAL_CATEGORIES)) {
+
+        MATERIAL_CATEGORIES.forEach(category => {
+
+            summary[category.value] = {
+
+                label: category.label,
+
+                materials: {},
+
+                totalCost: 0,
+
+                hasUnpriced: false
+
+            };
+
+        });
+
+    }
+
+
+    // ----------------------------------------
+    // 作業記録がない場合
+    // ----------------------------------------
+    if (!Array.isArray(recordList)) {
+        return summary;
+    }
+
+
+    // ========================================
+    // 作業記録を確認
+    // ========================================
+    recordList.forEach(record => {
+
+        if (!record || !record.date) {
+            return;
+        }
+
+
+        // ------------------------------------
+        // 年度
+        // ------------------------------------
+        if (
+            String(record.date).substring(0, 4) !==
+            String(year)
+        ) {
+            return;
+        }
+
+
+        // ------------------------------------
+        // 対象ほ場が含まれているか確認
+        // ------------------------------------
+        if (
+            !Array.isArray(record.fields)
+        ) {
+            return;
+        }
+
+
+        const hasTargetField =
+            record.fields.some(
+                field =>
+                    String(field.fieldNo) ===
+                    String(fieldNo)
+            );
+
+
+        if (!hasTargetField) {
+            return;
+        }
+
+
+        // ====================================
+        // 履歴画面と同じタンク作業判定
+        // ====================================
+        const isTankWork =
+            record.work === "葉面散布" ||
+            record.work === "除草";
+
+
+        // ====================================
+        // 履歴画面と同じ対象フィールド決定
+        //
+        // タンク作業：
+        //   1回の作業につき資材を1回だけ集計
+        //
+        // 通常作業：
+        //   指定ほ場だけを集計
+        // ====================================
+        const fieldsToCalculate =
+            isTankWork
+                ? [record.fields[0]]
+                : record.fields.filter(
+                    field =>
+                        String(field.fieldNo) ===
+                        String(fieldNo)
+                );
+
+
+        fieldsToCalculate.forEach(field => {
+
+            if (
+                !field ||
+                !Array.isArray(field.materials)
+            ) {
+                return;
+            }
+
+
+            // ====================================
+            // 資材ごとの集計
+            // ====================================
+            field.materials.forEach(mat => {
+
+                if (
+                    !mat ||
+                    !mat.material ||
+                    mat.material === "選択してください"
+                ) {
+                    return;
+                }
+
+
+                // --------------------------------
+                // 保存されている使用量
+                // --------------------------------
+                const rawAmount =
+                    parseFloat(mat.amount) ||
+                    parseFloat(mat.bags) ||
+                    0;
+
+
+                if (rawAmount === 0) {
+                    return;
+                }
+
+
+                // --------------------------------
+                // 資材マスター
+                // --------------------------------
+                const master =
+                    Array.isArray(materialMaster)
+                        ? materialMaster.find(
+                            item =>
+                                item.name ===
+                                mat.material
+                        )
+                        : null;
+
+
+                // --------------------------------
+                // カテゴリー
+                // --------------------------------
+                const category =
+                    master?.category ||
+                    "other";
+
+
+                if (!summary[category]) {
+
+                    summary[category] = {
+
+                        label:
+                            getFieldMaterialCategoryLabel(
+                                category
+                            ),
+
+                        materials: {},
+
+                        totalCost: 0,
+
+                        hasUnpriced: false
+
+                    };
+
+                }
+
+
+                const categorySummary =
+                    summary[category];
+
+
+                // =================================
+                // 履歴画面と同じ使用量変換
+                // =================================
+                const price =
+                    master
+                        ? parseFloat(master.price) || 0
+                        : 0;
+
+
+                const rawWeight =
+                    master
+                        ? parseFloat(master.weight) || 0
+                        : 0;
+
+
+                const weightUnit =
+                    master
+                        ? (
+                            master.weightUnit ||
+                            "kg"
+                        ).toLowerCase()
+                        : "kg";
+
+
+                let unit =
+                    master
+                        ? master.unit
+                        : (
+                            mat.unit ||
+                            "袋"
+                        );
+
+
+                let displayAmount = 0;
+
+
+                if (isTankWork) {
+
+                    // ----------------------------
+                    // 葉面散布・除草
+                    //
+                    // タンク投入量 ÷ 内容量
+                    // ＝ 使用本数
+                    // ----------------------------
+
+                    let capacityInMl =
+                        rawWeight;
+
+
+                    if (
+                        weightUnit === "kg" ||
+                        weightUnit === "l"
+                    ) {
+
+                        capacityInMl =
+                            rawWeight * 1000;
+
+                    }
+
+
+                    if (capacityInMl > 0) {
+
+                        let amountMl =
+                            rawAmount;
+
+
+                        // 0.2LなどL単位で保存された場合
+                        if (
+                            rawAmount < 1 ||
+                            mat.unit === "L" ||
+                            mat.unit === "l"
+                        ) {
+
+                            amountMl =
+                                rawAmount * 1000;
+
+                        }
+
+
+                        displayAmount =
+                            amountMl /
+                            capacityInMl;
+
+
+                        unit =
+                            master.unit ||
+                            "本";
+
+                    } else {
+
+                        displayAmount =
+                            rawAmount;
+
+                    }
+
+                } else {
+
+                    // ----------------------------
+                    // 通常作業
+                    //
+                    // 保存値をそのまま使用量とする
+                    // ----------------------------
+
+                    displayAmount =
+                        rawAmount;
+
+                }
+
+
+                // =================================
+                // 資材情報を初期化
+                // =================================
+                if (
+                    !categorySummary.materials[
+                        mat.material
+                    ]
+                ) {
+
+                    categorySummary.materials[
+                        mat.material
+                    ] = {
+
+                        amount: 0,
+
+                        unit: unit,
+
+                        price:
+                            master
+                                ? Number(
+                                    master.price
+                                )
+                                : null,
+
+                        cost: 0,
+
+                        hasPrice:
+                            !!master &&
+                            Number.isFinite(
+                                Number(
+                                    master.price
+                                )
+                            ) &&
+                            Number(
+                                master.price
+                            ) > 0
+
+                    };
+
+                }
+
+
+                const item =
+                    categorySummary.materials[
+                        mat.material
+                    ];
+
+
+                // --------------------------------
+                // 使用量
+                // --------------------------------
+                item.amount +=
+                    displayAmount;
+
+
+                // --------------------------------
+                // 資材費
+                // --------------------------------
+                if (item.hasPrice) {
+
+                    const cost =
+                        displayAmount *
+                        item.price;
+
+
+                    item.cost +=
+                        cost;
+
+
+                    categorySummary.totalCost +=
+                        cost;
+
+                } else {
+
+                    categorySummary.hasUnpriced =
+                        true;
+
+                }
+
+            });
+
+        });
+
+    });
+
+
+    // ========================================
+    // 丸め処理
+    // ========================================
+    Object.values(summary)
+        .forEach(category => {
+
+            Object.values(
+                category.materials
+            )
+            .forEach(item => {
+
+                item.amount =
+                    Math.round(
+                        item.amount * 100
+                    ) / 100;
+
+                item.cost =
+                    Math.round(
+                        item.cost
+                    );
+
+            });
+
+
+            category.totalCost =
+                Math.round(
+                    category.totalCost
+                );
+
+        });
+
+
+    return summary;
+
+}
+
+
+// ==========================================
+// 資材カテゴリー表示名
+// ==========================================
+function getFieldMaterialCategoryLabel(
+    category
+) {
+
+    if (Array.isArray(MATERIAL_CATEGORIES)) {
+
+        const found =
+            MATERIAL_CATEGORIES.find(
+                item =>
+                    item.value === category
+            );
+
+        if (found) {
+            return found.label;
+        }
+
+    }
+
+
+    return "その他";
+
+}
+
+
+// ==========================================
+// ほ場詳細・資材費HTML
+// ==========================================
+function getFieldMaterialCostHtml(
+    year,
+    fieldNo
+) {
+
+    const summary =
+        calculateFieldMaterialCostSummary(
+            year,
+            fieldNo
+        );
+
+
+    // ----------------------------------------
+    // ほ場面積
+    // ----------------------------------------
+    const field =
+        fieldMaster.find(
+            item =>
+                String(item.no) ===
+                String(fieldNo)
+        );
+
+
+    const area =
+        field
+            ? Number(field.area) || 0
+            : 0;
+
+
+    // ----------------------------------------
+    // 使用資材が存在するカテゴリーを取得
+    // ----------------------------------------
+    const categories =
+        Object.entries(summary)
+            .filter(
+                (
+                    [
+                        category,
+                        data
+                    ]
+                ) =>
+                    Object.keys(
+                        data.materials
+                    ).length > 0
+            );
+
+
+    // ----------------------------------------
+    // 資材記録なし
+    // ----------------------------------------
+    if (categories.length === 0) {
+
+        return `
+
+            <div class="card">
+
+                <p>
+                    この年度の資材使用記録はありません。
+                </p>
+
+            </div>
+
+        `;
+
+    }
+
+
+    // ========================================
+    // 総資材費
+    // ========================================
+    const totalCost =
+        categories.reduce(
+            (
+                total,
+                [
+                    category,
+                    data
+                ]
+            ) =>
+                total +
+                data.totalCost,
+            0
+        );
+
+
+    const hasUnpriced =
+        categories.some(
+            (
+                [
+                    category,
+                    data
+                ]
+            ) =>
+                data.hasUnpriced
+        );
+
+
+    const totalPerTan =
+        area > 0
+            ? totalCost / area
+            : 0;
+
+
+    // ========================================
+    // カテゴリー別HTML
+    // ========================================
+    const categoryHtml =
+        categories
+            .map(
+                (
+                    [
+                        category,
+                        data
+                    ]
+                ) => {
+
+                    const materials =
+                        Object.entries(
+                            data.materials
+                        );
+
+
+                    const materialHtml =
+                        materials
+                            .map(
+                                (
+                                    [
+                                        name,
+                                        item
+                                    ]
+                                ) => {
+
+                                    const amountText =
+                                        `${item.amount}${item.unit}`;
+
+                                    const costText =
+                                        item.hasPrice
+                                            ? `${item.cost.toLocaleString()}円`
+                                            : "価格未登録";
+
+                                    return `
+
+                                        <div
+                                            class="
+                                                record-row
+                                            "
+                                        >
+
+                                            <span>
+                                                ${name}
+                                                <small>
+                                                    ${amountText}
+                                                </small>
+                                            </span>
+
+                                            <strong>
+                                                ${costText}
+                                            </strong>
+
+                                        </div>
+
+                                    `;
+
+                                }
+                            )
+                            .join("");
+
+
+                    return `
+
+                        <details
+                            style="
+                                margin-bottom:
+                                    10px;
+                            "
+                        >
+
+                            <summary
+                                style="
+                                    cursor:
+                                        pointer;
+                                    padding:
+                                        10px 0;
+                                    font-weight:
+                                        bold;
+                                "
+                            >
+
+                                ${data.label}
+
+                               　
+
+                                ${data.totalCost.toLocaleString()}円
+
+                            </summary>
+
+
+                            <div
+                                style="
+                                    padding:
+                                        5px 0 10px 0;
+                                "
+                            >
+
+                                ${materialHtml}
+
+
+                                <hr>
+
+
+                                <div
+                                    class="
+                                        record-row
+                                    "
+                                >
+
+                                    <strong>
+                                        小計
+                                    </strong>
+
+                                    <strong>
+                                        ${data.totalCost.toLocaleString()}円
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+                        </details>
+
+                    `;
+
+                }
+            )
+            .join("");
+
+
+    // ========================================
+    // 最終HTML
+    // ========================================
+    return `
+
+        <div class="card">
+
+            <h3>
+                💰 資材費
+            </h3>
+
+
+            <div
+                class="
+                    record-row
+                "
+            >
+
+                <strong>
+                    資材費合計
+                </strong>
+
+                <strong>
+                    ${totalCost.toLocaleString()}円
+                </strong>
+
+            </div>
+
+
+            ${
+                area > 0
+                    ? `
+                        <div
+                            class="
+                                record-row
+                            "
+                        >
+
+                            <span>
+                                1反あたり
+                            </span>
+
+                            <strong>
+                                ${Math.round(
+                                    totalPerTan
+                                ).toLocaleString()}円/反
+                            </strong>
+
+                        </div>
+                    `
+                    : ""
+            }
+
+
+            ${
+                hasUnpriced
+                    ? `
+                        <p>
+                            <small>
+                                ※価格未登録の資材があります。
+                                使用量は表示していますが、
+                                資材費には含めていません。
+                            </small>
+                        </p>
+                    `
+                    : ""
+            }
+
+        </div>
+
+
+        ${categoryHtml}
+
+    `;
+
+}
+
 // ==========================================
 // ほ場詳細・出荷実績
 // ==========================================
