@@ -187,17 +187,8 @@ function showInput() {
         }
 
 
-        // --------------------------------------
-        // 田んぼ選択
-        // --------------------------------------
-
-        if (
-            typeof initFoliarFieldButtons === "function"
-        ) {
-
-            initFoliarFieldButtons();
-
-        }
+        
+        
 
 
         // --------------------------------------
@@ -295,17 +286,33 @@ if (inputTab === "herbicide") {
 // 2. 共通パーツ：全田んぼ選択ボタンの生成
 // ==========================================
 function renderAllFieldButtons() {
+
     let fieldListHtml = "";
+
     fieldMaster.forEach(field => {
-        const selected = selectedFieldIds.includes(String(field.no));
+
+        const selected =
+            selectedFieldIds.includes(
+                String(field.no)
+            );
+
         fieldListHtml += `
             <button
+                type="button"
                 class="${selected ? "tab active" : "tab"}"
-                onclick="toggleFieldSelection('${field.no}')">
-                ${selected ? "☑" : "☐"} ${field.no}　${field.owner}
+                onclick="
+                    toggleFieldSelection(
+                        '${field.no}'
+                    )
+                "
+            >
+                ${selected ? "☑" : "☐"}
+                ${field.no}　${field.owner}
             </button>
         `;
+
     });
+
     return fieldListHtml;
 }
 // ==========================================
@@ -437,7 +444,7 @@ function getFertilizerHtml() {
                 </button>
                 <br><br>
                 <button class="mainButton" onclick="saveTopFertilizer()">
-                    💾保存
+                    💾記録する
                 </button>
             </div>
         `;
@@ -512,7 +519,7 @@ function getFertilizerHtml() {
                 </button>
                 <br><br>
                 <button class="mainButton" onclick="saveTopFertilizer()">
-                    💾保存
+                    💾記録する
                 </button>
             </div>
         `;
@@ -538,7 +545,7 @@ function getSprayHtml() {
             <!-- 作業日 -->
             <!-- ================================ -->
 
-            <label>日付</label>
+            <label>作業日</label>
 
             <input
                 type="date"
@@ -592,12 +599,13 @@ function getSprayHtml() {
                         background: #fff;
                     "
                 >
-
+<option value="">
+                        -- タンク容量 --
+                    </option>　
                     <option value="100">100L</option>
 
                     <option
-                        value="200"
-                        selected
+                        value="200"        
                     >
                         200L
                     </option>
@@ -633,13 +641,9 @@ function getSprayHtml() {
                 </label>
 
                 <div
-                    id="foliarFieldButtonsContainer"
-                    style="
-                        display: flex;
-                        flex-wrap: wrap;
-                        gap: 8px;
-                    "
-                >
+    id="foliarFieldButtonsContainer"
+    class="selection-flex-wrap"
+>
                     ${renderAllFieldButtons()}
                 </div>
 
@@ -745,7 +749,7 @@ function getSprayHtml() {
                         font-weight: bold;
                     "
                 >
-                    📝 この内容で記録する
+                    📝 記録する
                 </button>
 
             </div>
@@ -806,7 +810,7 @@ function getOtherHtml() {
 
             <div class="card">
                 <button class="btn-save-green" onclick="saveOtherRecord()">
-                    💾 その他作業の記録を保存
+                    💾 記録する
                 </button>
             </div>
         </div>
@@ -875,7 +879,7 @@ function getPlantingHtml() {
                     class="btn-save-green"
                     onclick="savePlantingRecord()">
 
-                    💾 植え付けを保存
+                    💾 記録する
 
                 </button>
             </div>
@@ -905,14 +909,14 @@ function showHerbicideInput() {
 
 // ========================================
 // 除草剤入力画面
-// 共通資材入力行方式
+// 葉面散布とUI統一
 // ========================================
 function getHerbicideHtml() {
 
     return `
-        <div class="card">
+        <div class="card" style="padding: 15px;">
 
-            <h3 class="input-header">
+            <h3 style="margin-top: 0;">
                 🌿 除草剤入力
             </h3>
 
@@ -930,42 +934,49 @@ function getHerbicideHtml() {
                 onchange="recordDate = this.value"
             >
 
-            <br><br>
-
-
-            <!-- ================================ -->
-            <!-- 田んぼ -->
-            <!-- ================================ -->
-
-            <div class="form-group">
-
-                <label class="form-group-label">
-                    🌾 田んぼを選択してください（複数選択可）
-                </label>
-
-                <div class="selection-flex-wrap">
-                    ${renderAllFieldButtons()}
-                </div>
-
-            </div>
-
 
             <!-- ================================ -->
             <!-- タンク容量 -->
             <!-- ================================ -->
 
-            <div class="card">
+            <div
+                style="
+                    margin-bottom: 20px;
+                    background: #e8f5e9;
+                    padding: 12px;
+                    border-radius: 6px;
+                    border: 1px solid #c8e6c9;
+                "
+            >
 
-                <label>タンク容量</label>
+                <label
+                    style="
+                        font-weight: bold;
+                        color: #2e7d32;
+                        font-size: 15px;
+                    "
+                >
+                    📊 今日の散布量 (タンク容量)
+                </label>
+
+                <br>
 
                 <select
                     id="herbicideTank"
-                    class="form-select-full"
                     onchange="
                         calculateMaterialInputAmounts(
                             Number(this.value),
                             '除草'
                         );
+                    "
+                    style="
+                        width: 100%;
+                        height: 40px;
+                        margin-top: 6px;
+                        font-size: 16px;
+                        border: 1px solid #a5d6a7;
+                        border-radius: 4px;
+                        background: #fff;
                     "
                 >
 
@@ -988,82 +999,136 @@ function getHerbicideHtml() {
 
 
             <!-- ================================ -->
-            <!-- 共通資材入力 -->
+            <!-- 田んぼ選択 -->
             <!-- ================================ -->
 
-            <div class="card">
+            <div
+                class="input-group"
+                style="margin-bottom: 20px;"
+            >
 
-                <div class="spray-grid-row">
-
-                    <div class="spray-col-material">
-
-                        <label>
-                            資材
-                        </label>
-
-                    </div>
-
-                    <div class="spray-col-controls">
-
-                        <label>
-                            倍率
-                        </label>
-
-                        <span class="spray-item-amount"></span>
-
-                        <span
-                            style="
-                                width: 24px;
-                                display: inline-block;
-                            "
-                        ></span>
-
-                    </div>
-
-                </div>
-
-
-                <!-- 共通入力行 -->
-
-                <div id="materialInputRows"></div>
-
-
-                <br>
-
-
-                <!-- 資材入力行追加 -->
-
-                <button
-                    type="button"
-                    class="btn-save-green"
-                    onclick="
-                        addMaterialInputRowAndRender(
-                            '除草',
-                            Number(
-                                document.getElementById(
-                                    'herbicideTank'
-                                )?.value || 0
-                            )
-                        );
+                <label
+                    style="
+                        display: block;
+                        font-weight: bold;
+                        margin-bottom: 8px;
+                        color: #2e7d32;
+                        font-size: 14px;
                     "
                 >
-                    ＋資材追加
-                </button>
+                    🌾 田んぼを選択してください（複数選択可）
+                </label>
+
+                <div
+    id="herbicideFieldButtonsContainer"
+    class="selection-flex-wrap"
+>
+                    ${renderAllFieldButtons()}
+                </div>
 
             </div>
 
 
             <!-- ================================ -->
-            <!-- 保存 -->
+            <!-- 共通資材入力 -->
             <!-- ================================ -->
 
-            <div class="card">
+            <div class="spray-grid-row" style="margin-bottom: 2px;">
+
+                <div class="spray-col-material">
+
+                    <label
+                        style="
+                            font-weight: bold;
+                            font-size: 14px;
+                            color: #333;
+                        "
+                    >
+                        資材
+                    </label>
+
+                </div>
+
+                <div class="spray-col-controls">
+
+                    <label
+                        style="
+                            font-weight: bold;
+                            font-size: 14px;
+                            color: #333;
+                        "
+                    >
+                        倍率
+                    </label>
+
+                    <span class="spray-item-amount"></span>
+
+                    <div class="spray-item-del-btn"></div>
+
+                </div>
+
+            </div>
+
+
+            <!-- 共通入力行の描画先 -->
+
+            <div id="materialInputRows"></div>
+
+
+            <br>
+
+
+            <!-- ================================ -->
+            <!-- 資材入力行追加 -->
+            <!-- ================================ -->
+
+            <button
+                type="button"
+                class="mainButton"
+                onclick="
+                    addMaterialInputRowAndRender(
+                        '除草',
+                        Number(
+                            document.getElementById(
+                                'herbicideTank'
+                            )?.value || 0
+                        )
+                    );
+                "
+                style="
+                    width: 100%;
+                    padding: 12px;
+                    font-weight: bold;
+                    background-color: #2e7d32;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 16px;
+                "
+            >
+                ＋資材追加
+            </button>
+
+
+            <!-- ================================ -->
+            <!-- 記録 -->
+            <!-- ================================ -->
+
+            <div style="margin-top: 20px;">
 
                 <button
-                    class="btn-save-green"
+                    id="saveHerbicideBtn"
+                    class="btn btn-primary"
                     onclick="saveHerbicideRecord()"
+                    style="
+                        width: 100%;
+                        padding: 12px;
+                        font-size: 16px;
+                        font-weight: bold;
+                    "
                 >
-                    💾 除草剤の記録を保存
+                    📝 記録する
                 </button>
 
             </div>
@@ -1071,7 +1136,6 @@ function getHerbicideHtml() {
         </div>
     `;
 }
-
 // ========================================
 // 除草剤の資材プルダウン生成
 // ========================================

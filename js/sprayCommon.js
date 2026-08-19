@@ -93,13 +93,10 @@ function renderMaterialInputRows(workName, tankVolume,isEdit = false) {
 
 
     // ========================================
-    // 入力行を1行ずつ描画
-    // ========================================
+// 入力行を1行ずつ描画
+// ========================================
     materialInputRows.forEach((row, index) => {
 
-        // ----------------------------------------
-        // 資材プルダウン
-        // ----------------------------------------
         let materialOptions = "";
 
 if (isEdit) {
@@ -173,21 +170,16 @@ if (isEdit) {
 
 }
 
-        // ----------------------------------------
-        // 倍率プルダウン
-        // ----------------------------------------
         let dilutionOptions = `
             <option value="">
                 -- 倍率 --
             </option>
         `;
 
-
         const material =
             materialMaster[
                 Number(row.materialIndex)
             ];
-
 
         if (
             material &&
@@ -216,12 +208,7 @@ if (isEdit) {
 
         }
 
-
-        // ----------------------------------------
-        // 使用量を自動計算
-        // ----------------------------------------
         let amountText = "";
-
 
         if (
             Number(tankVolume) > 0 &&
@@ -231,7 +218,6 @@ if (isEdit) {
             const amount =
                 Number(tankVolume) /
                 Number(row.dilution);
-
 
             if (amount < 1) {
 
@@ -247,17 +233,12 @@ if (isEdit) {
 
         }
 
-
-        // ----------------------------------------
-        // 入力行
-        // ----------------------------------------
         html += `
             <div
                 class="spray-grid-row material-input-row"
                 style="margin-bottom: 8px;"
             >
 
-                <!-- 資材 -->
                 <div class="spray-col-material">
 
                     <select
@@ -281,8 +262,6 @@ if (isEdit) {
 
                 </div>
 
-
-                <!-- 倍率・使用量・削除 -->
                 <div
                     class="spray-col-controls"
                     style="
@@ -292,7 +271,6 @@ if (isEdit) {
                     "
                 >
 
-                    <!-- 倍率 -->
                     <select
                         onchange="
                             updateMaterialInputRowDilution(
@@ -312,8 +290,6 @@ if (isEdit) {
 
                     </select>
 
-
-                    <!-- 使用量 -->
                     <span
                         class="spray-item-amount"
                         style="
@@ -325,8 +301,6 @@ if (isEdit) {
                         ${amountText}
                     </span>
 
-
-                    <!-- 削除 -->
                     ${
                         materialInputRows.length > 1
                             ? `
@@ -364,49 +338,36 @@ if (isEdit) {
 
     });
 
-
-    // ========================================
-    // 画面へ反映
-    // ========================================
     container.innerHTML = html;
 
 }
-// ========================================
-// 共通：資材入力行を初期化して描画
-// ========================================
+
 function initMaterialInputRows(workName, tankVolume) {
 
     // 入力行を1行にリセット
-    initMaterialInputRows();
+    resetMaterialInputRows();
 
-    // 入力行を描画
     renderMaterialInputRows(
         workName,
         tankVolume
     );
 
 }
-// ========================================
-// 共通：資材入力行を追加
-// ========================================
+
 function addMaterialInputRowAndRender(
     workName,
     tankVolume
 ) {
 
-    // 空の入力行を1つ追加
     addMaterialInputRow();
 
-    // 画面を再描画
     renderMaterialInputRows(
         workName,
         tankVolume
     );
 
 }
-// ========================================
-// 共通：資材入力行の使用量を再計算
-// ========================================
+
 function calculateMaterialInputAmounts(
     tankVolume,
     workName
@@ -417,8 +378,6 @@ function calculateMaterialInputAmounts(
 
     if (!container) return;
 
-
-    // 入力行の表示を更新
     renderMaterialInputRows(
         workName,
         Number(tankVolume)
@@ -426,9 +385,6 @@ function calculateMaterialInputAmounts(
 
 }
 
-// ========================================
-// 共通：資材選択時に倍率を更新
-// ========================================
 function updateMaterialInputRowMaterial(
     index,
     materialIndex,
@@ -441,19 +397,13 @@ function updateMaterialInputRowMaterial(
 
     if (!row) return;
 
-
-    // 資材を変更
     row.materialIndex =
         materialIndex === ""
             ? ""
             : Number(materialIndex);
 
-
-    // 資材を変更したら倍率はリセット
     row.dilution = "";
 
-
-    // 全入力行を再描画
     renderMaterialInputRows(
         workName,
         tankVolume
@@ -461,9 +411,6 @@ function updateMaterialInputRowMaterial(
 
 }
 
-// ========================================
-// 共通：倍率変更
-// ========================================
 function updateMaterialInputRowDilution(
     index,
     dilution,
@@ -476,24 +423,18 @@ function updateMaterialInputRowDilution(
 
     if (!row) return;
 
-
-    // 倍率を更新
     row.dilution =
         dilution === ""
             ? ""
             : Number(dilution);
 
-
-    // 使用量を再計算して再描画
     renderMaterialInputRows(
         workName,
         Number(tankVolume)
     );
 
 }
-// ========================================
-// 葉面散布：資材入力部分
-// ========================================
+
 function getSprayMaterialInputHtml() {
 
     return `
@@ -524,15 +465,8 @@ function getSprayMaterialInputHtml() {
     `;
 }
 
-// ========================================
-// 葉面散布記録保存
-// 共通入力行 materialInputRows 対応
-// ========================================
 function saveFoliarRecord() {
 
-    // ----------------------------------------
-    // 作業日
-    // ----------------------------------------
     const date =
         document.getElementById("recordDate")?.value ||
         recordDate;
@@ -544,10 +478,6 @@ function saveFoliarRecord() {
 
     }
 
-
-    // ----------------------------------------
-    // 田んぼ
-    // ----------------------------------------
     if (
         !selectedFieldIds ||
         selectedFieldIds.length === 0
@@ -561,10 +491,6 @@ function saveFoliarRecord() {
 
     }
 
-
-    // ----------------------------------------
-    // タンク容量
-    // ----------------------------------------
     const tankSelect =
         document.getElementById("foliarTank");
 
@@ -578,10 +504,6 @@ function saveFoliarRecord() {
 
     }
 
-
-    // ----------------------------------------
-    // 共通入力行チェック
-    // ----------------------------------------
     if (
         !Array.isArray(materialInputRows) ||
         materialInputRows.length === 0
@@ -592,16 +514,10 @@ function saveFoliarRecord() {
 
     }
 
-
-    // ----------------------------------------
-    // 入力行から保存用資材データを作成
-    // ----------------------------------------
     const materials = [];
-
 
     materialInputRows.forEach(row => {
 
-        // 資材未選択の行は無視
         if (
             row.materialIndex === "" ||
             row.materialIndex === null ||
@@ -610,8 +526,6 @@ function saveFoliarRecord() {
             return;
         }
 
-
-        // 倍率未選択の行は無視
         if (
             row.dilution === "" ||
             Number(row.dilution) <= 0
@@ -619,22 +533,18 @@ function saveFoliarRecord() {
             return;
         }
 
-
         const material =
             materialMaster[
                 Number(row.materialIndex)
             ];
 
-
         if (!material) {
             return;
         }
 
-
         const amount =
             tankVolume /
             Number(row.dilution);
-
 
         materials.push({
 
@@ -651,10 +561,6 @@ function saveFoliarRecord() {
 
     });
 
-
-    // ----------------------------------------
-    // 資材チェック
-    // ----------------------------------------
     if (materials.length === 0) {
 
         alert(
@@ -665,10 +571,6 @@ function saveFoliarRecord() {
 
     }
 
-
-    // ----------------------------------------
-    // 記録データ作成
-    // ----------------------------------------
     const record = {
 
         date:
@@ -685,10 +587,6 @@ function saveFoliarRecord() {
 
     };
 
-
-    // ----------------------------------------
-    // 田んぼごとに資材を登録
-    // ----------------------------------------
     selectedFieldIds.forEach(fieldNo => {
 
         record.fields.push({
@@ -711,56 +609,22 @@ function saveFoliarRecord() {
 
     });
 
-
-    // ----------------------------------------
-    // 保存
-    // ----------------------------------------
     recordList.push(record);
 
     saveRecordList();
 
-
-    // ----------------------------------------
-    // 入力状態をクリア
-    // ----------------------------------------
     selectedFieldIds = [];
 
     resetMaterialInputRows();
 
+    alert("記録しました");
 
-    // ----------------------------------------
-    // 完了
-    // ----------------------------------------
-    alert(
-        "葉面散布の記録を保存しました！"
-    );
-
-
-    // ----------------------------------------
-    // 履歴へ
-    // ----------------------------------------
-    if (
-        typeof showHistory === "function"
-    ) {
-
-        showHistory();
-
-    } else {
-
-        showInput();
-
-    }
+    showInput();
 
 }
-// ========================================
-// 除草剤記録保存
-// 共通入力行 materialInputRows 対応
-// ========================================
+
 function saveHerbicideRecord() {
 
-    // ----------------------------------------
-    // 作業日
-    // ----------------------------------------
     const date =
         document.getElementById("recordDate")?.value ||
         recordDate;
@@ -772,10 +636,6 @@ function saveHerbicideRecord() {
 
     }
 
-
-    // ----------------------------------------
-    // 田んぼ
-    // ----------------------------------------
     if (
         !selectedFieldIds ||
         selectedFieldIds.length === 0
@@ -789,10 +649,6 @@ function saveHerbicideRecord() {
 
     }
 
-
-    // ----------------------------------------
-    // タンク容量
-    // ----------------------------------------
     const tankSelect =
         document.getElementById("herbicideTank");
 
@@ -806,10 +662,6 @@ function saveHerbicideRecord() {
 
     }
 
-
-    // ----------------------------------------
-    // 共通入力行チェック
-    // ----------------------------------------
     if (
         !Array.isArray(materialInputRows) ||
         materialInputRows.length === 0
@@ -820,16 +672,10 @@ function saveHerbicideRecord() {
 
     }
 
-
-    // ----------------------------------------
-    // 入力行から保存用資材データを作成
-    // ----------------------------------------
     const materials = [];
-
 
     materialInputRows.forEach(row => {
 
-        // 資材未選択
         if (
             row.materialIndex === "" ||
             row.materialIndex === null ||
@@ -838,8 +684,6 @@ function saveHerbicideRecord() {
             return;
         }
 
-
-        // 倍率未選択
         if (
             row.dilution === "" ||
             Number(row.dilution) <= 0
@@ -847,23 +691,18 @@ function saveHerbicideRecord() {
             return;
         }
 
-
         const material =
             materialMaster[
                 Number(row.materialIndex)
             ];
 
-
         if (!material) {
             return;
         }
 
-
-        // タンク容量 ÷ 倍率
         const amount =
             tankVolume /
             Number(row.dilution);
-
 
         materials.push({
 
@@ -880,10 +719,6 @@ function saveHerbicideRecord() {
 
     });
 
-
-    // ----------------------------------------
-    // 資材チェック
-    // ----------------------------------------
     if (materials.length === 0) {
 
         alert(
@@ -894,10 +729,6 @@ function saveHerbicideRecord() {
 
     }
 
-
-    // ----------------------------------------
-    // 記録データ作成
-    // ----------------------------------------
     const record = {
 
         date:
@@ -914,10 +745,6 @@ function saveHerbicideRecord() {
 
     };
 
-
-    // ----------------------------------------
-    // 田んぼごとに登録
-    // ----------------------------------------
     selectedFieldIds.forEach(fieldNo => {
 
         record.fields.push({
@@ -943,45 +770,17 @@ function saveHerbicideRecord() {
 
     });
 
-
-    // ----------------------------------------
-    // 保存
-    // ----------------------------------------
     recordList.push(record);
 
     saveRecordList();
 
-
-    // ----------------------------------------
-    // 入力状態をリセット
-    // ----------------------------------------
     selectedFieldIds = [];
 
     resetMaterialInputRows();
 
+    alert("記録しました");
 
-    // ----------------------------------------
-    // 完了
-    // ----------------------------------------
-    alert(
-        "除草剤の記録を保存しました！"
-    );
-
-
-    // ----------------------------------------
-    // 履歴へ
-    // ----------------------------------------
-    if (
-        typeof showHistory === "function"
-    ) {
-
-        showHistory();
-
-    } else {
-
-        showInput();
-
-    }
+    showInput();
 
 }
 
@@ -992,19 +791,13 @@ function loadHerbicideForEdit() {
 
     if (!record) return;
 
-
-    // 作業日
     recordDate = record.date;
 
-
-    // 田んぼ
     selectedFieldIds =
     record.fields.map(
         field => String(field.fieldNo)
     );
 
-
-    // タンク容量
     const memo =
         record.memo || "";
 
@@ -1016,15 +809,10 @@ function loadHerbicideForEdit() {
             ? Number(match[1])
             : 0;
 
-
-    // 共通入力行を作成
     materialInputRows = [];
 
-
-    // 最初の田んぼの資材を基準に復元
     const firstField =
         record.fields?.[0];
-
 
     if (
         firstField &&
@@ -1041,22 +829,18 @@ function loadHerbicideForEdit() {
                             item.material
                     );
 
-
                 if (materialIndex < 0) {
                     return;
                 }
 
-
                 const amount =
                     Number(item.amount) || 0;
-
 
                 const dilution =
                     amount > 0 &&
                     tankVolume > 0
                         ? tankVolume / amount
                         : "";
-
 
                 materialInputRows.push({
 
@@ -1073,8 +857,6 @@ function loadHerbicideForEdit() {
 
     }
 
-
-    // 資材がない場合でも1行
     if (
         materialInputRows.length === 0
     ) {
@@ -1085,10 +867,6 @@ function loadHerbicideForEdit() {
 
 }
 
-
-// ========================================
-// 除草剤編集画面
-// ========================================
 function showHerbicideEdit() {
 
     const record =
@@ -1099,10 +877,6 @@ function showHerbicideEdit() {
         return;
     }
 
-
-    // ----------------------------------------
-    // タンク容量
-    // ----------------------------------------
     const memo =
         record.memo || "";
 
@@ -1114,10 +888,6 @@ function showHerbicideEdit() {
             ? Number(match[1])
             : 0;
 
-
-    // ----------------------------------------
-    // 編集画面HTML
-    // ----------------------------------------
     let html = `
 
         <div class="card">
@@ -1125,9 +895,6 @@ function showHerbicideEdit() {
             <h3 class="input-header">
                 🌿 除草剤記録を編集
             </h3>
-
-
-            <!-- 作業日 -->
 
             <label>作業日</label>
 
@@ -1142,9 +909,6 @@ function showHerbicideEdit() {
 
             <br><br>
 
-
-            <!-- 田んぼ -->
-
             <div class="form-group">
 
                 <label class="form-group-label">
@@ -1156,9 +920,6 @@ function showHerbicideEdit() {
                 </div>
 
             </div>
-
-
-            <!-- タンク容量 -->
 
             <div class="card">
 
@@ -1207,9 +968,6 @@ function showHerbicideEdit() {
 
             </div>
 
-
-            <!-- 資材 -->
-
             <div class="card">
 
                 <div class="spray-grid-row">
@@ -1232,12 +990,9 @@ function showHerbicideEdit() {
 
                 </div>
 
-
                 <div id="materialInputRows"></div>
 
-
                 <br>
-
 
                 <button
                     type="button"
@@ -1258,12 +1013,10 @@ function showHerbicideEdit() {
 
             </div>
 
-
-            <!-- 保存 -->
-
             <div class="card">
 
                 <button
+                    type="button"
                     class="btn-save-green"
                     onclick="updateHerbicideRecord()"
                 >
@@ -1275,11 +1028,6 @@ function showHerbicideEdit() {
         </div>
     `;
 
-
-    // ----------------------------------------
-    // 表示
-    // ----------------------------------------
-
     const container =
         document.getElementById("app");
 
@@ -1287,20 +1035,13 @@ function showHerbicideEdit() {
 
     container.innerHTML = html;
 
-
-    // ----------------------------------------
-    // 共通資材入力行を描画
-    // ----------------------------------------
-
     renderMaterialInputRows(
         "除草",
         tankVolume
     );
 
 }
-// ========================================
-// 除草剤編集保存
-// ========================================
+
 function updateHerbicideRecord() {
 
     const record =
@@ -1313,10 +1054,6 @@ function updateHerbicideRecord() {
 
     }
 
-
-    // ----------------------------------------
-    // 作業日
-    // ----------------------------------------
     const date =
         document.getElementById("recordDate")?.value ||
         recordDate;
@@ -1328,10 +1065,6 @@ function updateHerbicideRecord() {
 
     }
 
-
-    // ----------------------------------------
-    // 田んぼ
-    // ----------------------------------------
     if (
         !selectedFieldIds ||
         selectedFieldIds.length === 0
@@ -1345,10 +1078,6 @@ function updateHerbicideRecord() {
 
     }
 
-
-    // ----------------------------------------
-    // タンク容量
-    // ----------------------------------------
     const tankVolume =
         Number(
             document.getElementById(
@@ -1363,10 +1092,6 @@ function updateHerbicideRecord() {
 
     }
 
-
-    // ----------------------------------------
-    // 共通入力行チェック
-    // ----------------------------------------
     if (
         !Array.isArray(materialInputRows) ||
         materialInputRows.length === 0
@@ -1377,12 +1102,7 @@ function updateHerbicideRecord() {
 
     }
 
-
-    // ----------------------------------------
-    // 資材データ作成
-    // ----------------------------------------
     const materials = [];
-
 
     materialInputRows.forEach(row => {
 
@@ -1394,7 +1114,6 @@ function updateHerbicideRecord() {
             return;
         }
 
-
         if (
             row.dilution === "" ||
             Number(row.dilution) <= 0
@@ -1402,25 +1121,20 @@ function updateHerbicideRecord() {
             return;
         }
 
-
         const material =
             materialMaster[
                 Number(row.materialIndex)
             ];
 
-
         if (!material) {
             return;
         }
 
-
         const dilution =
             Number(row.dilution);
 
-
         const amount =
             tankVolume / dilution;
-
 
         materials.push({
 
@@ -1440,10 +1154,6 @@ function updateHerbicideRecord() {
 
     });
 
-
-    // ----------------------------------------
-    // 資材チェック
-    // ----------------------------------------
     if (materials.length === 0) {
 
         alert(
@@ -1454,10 +1164,6 @@ function updateHerbicideRecord() {
 
     }
 
-
-    // ----------------------------------------
-    // 田んぼごとのデータを再構築
-    // ----------------------------------------
     const fieldsData =
         selectedFieldIds.map(fieldNo => {
 
@@ -1487,10 +1193,6 @@ function updateHerbicideRecord() {
 
         });
 
-
-    // ----------------------------------------
-    // 既存レコードを更新
-    // ----------------------------------------
     record.date =
         date;
 
@@ -1506,54 +1208,22 @@ function updateHerbicideRecord() {
     record.fields =
         fieldsData;
 
-
-    // ----------------------------------------
-    // 保存
-    // ----------------------------------------
     saveRecordList();
 
-
-    // ----------------------------------------
-    // 編集状態を解除
-    // ----------------------------------------
     selectedFieldIds = [];
 
     resetMaterialInputRows();
 
     editingRecordIndex = -1;
 
-
-    // ----------------------------------------
-    // 完了
-    // ----------------------------------------
     alert(
         "除草剤の記録を更新しました。"
     );
 
-
-    // ----------------------------------------
-    // 履歴へ
-    // ----------------------------------------
     showHistory();
 
 }
-// ========================================
-// 編集用：資材プルダウン候補を生成
-// ========================================
-// 現在使用可能な資材
-// ＋
-// 編集対象レコードに既に登録されている資材
-// を候補にする
-//
-// category を指定
-//   → category で絞る
-//
-// workName を指定
-//   → works に workName が含まれる資材で絞る
-//
-// selectedMaterial
-//   → 現在の行で選択されている資材
-// ========================================
+
 function getEditMaterialOptions(
     category,
     workName,
@@ -1572,9 +1242,7 @@ function getEditMaterialOptions(
                 .filter(Boolean)
             : [];
 
-
     const options = [];
-
 
     if (!Array.isArray(materialMaster)) {
 
@@ -1586,7 +1254,6 @@ function getEditMaterialOptions(
 
     }
 
-
     materialMaster.forEach(
         (material, materialIndex) => {
 
@@ -1595,17 +1262,14 @@ function getEditMaterialOptions(
                     material.name
                 );
 
-
             const matchesCategory =
                 category &&
                 material.category === category;
-
 
             const matchesWork =
                 workName &&
                 Array.isArray(material.works) &&
                 material.works.includes(workName);
-
 
             if (
                 matchesCategory ||
@@ -1628,10 +1292,6 @@ function getEditMaterialOptions(
         }
     );
 
-
-    // ----------------------------------------
-    // 重複除去
-    // ----------------------------------------
     const uniqueOptions =
         options.filter(
             (item, index, array) =>
@@ -1641,16 +1301,11 @@ function getEditMaterialOptions(
                 ) === index
         );
 
-
-    // ----------------------------------------
-    // HTML生成
-    // ----------------------------------------
     let html = `
         <option value="">
             -- 資材を選択 --
         </option>
     `;
-
 
     uniqueOptions.forEach(item => {
 
@@ -1659,14 +1314,15 @@ function getEditMaterialOptions(
                 ? "selected"
                 : "";
 
-console.log(
-        "候補:",
-        item.name,
-        "現在:",
-        selectedMaterial,
-        "selected:",
-        selected
-    );
+        console.log(
+            "候補:",
+            item.name,
+            "現在:",
+            selectedMaterial,
+            "selected:",
+            selected
+        );
+
         html += `
             <option
                 value="${item.name}"
@@ -1677,7 +1333,6 @@ console.log(
         `;
 
     });
-
 
     return html;
 

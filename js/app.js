@@ -599,8 +599,8 @@ function saveRecord() {
         memo: document.getElementById("recordMemo").value
 
     };
-    
-    
+
+
 // ------------------------
 // 入力チェック
 // ------------------------
@@ -904,7 +904,7 @@ function editRecord(index) {
     showHerbicideEdit();
     break;
 
-        
+
 
         case "出荷":
             alert("出荷の編集機能は未実装です。");
@@ -984,8 +984,8 @@ function clearHistorySearch() {
     document.getElementById("historyTo").value = "";
 
     renderHistoryList();
-    
-    
+
+
 
 }
 
@@ -1270,7 +1270,7 @@ function loadFertilizerPlan() {
 
         planMaterials =
             structuredClone(plan.materials); // ディープコピーで作業用変数へ代入
-            
+
         // 下位互換用：データ構造にworkキーがなければ空文字で初期化
         planMaterials.forEach(material => {
 
@@ -1484,7 +1484,7 @@ function saveFertilizerPlan() {
 function renderPlanMaterials() {
     const div = document.getElementById("planMaterials");
     let html = "";
-    
+
     // 現在選択されている田んぼの面積（反）を取得しておく
     const fieldNo = document.getElementById("planField") ? document.getElementById("planField").value : "";
     const field = fieldMaster.find(f => String(f.no) === String(fieldNo));
@@ -1492,7 +1492,7 @@ function renderPlanMaterials() {
 
     // 現在登録されている作業グループのユニーク一覧
     const works = [...new Set(planMaterials.map(m => m.work))];
-    
+
     works.forEach(work => {
         html += `
             <div class="work-card">
@@ -1508,7 +1508,7 @@ function renderPlanMaterials() {
             </select>
             </div>
         `;
-        
+
         planMaterials.forEach((material, index) => {
             if (material.work !== work) {
                 return;
@@ -1559,7 +1559,7 @@ function renderPlanMaterials() {
             </div>
         `;
     });
-    
+
     div.innerHTML = html;
     updateFertilizerSummary(); // 成分量やコスト等の合計計算をキック
 }
@@ -1578,7 +1578,7 @@ function changePlanWork(index, value) {
 // 計画行の資材が変更された時のデータ同期処理
 function changePlanMaterial(index, value) {
 
-   
+
 
     planMaterials[index].material = value;
 
@@ -1935,44 +1935,32 @@ function toggleFieldSelection(fieldId) {
 
     const id = String(fieldId);
 
-    const index = selectedFieldIds.indexOf(id);
+    const index =
+        selectedFieldIds.indexOf(id);
 
     if (index >= 0) {
-
         selectedFieldIds.splice(index, 1);
-
     } else {
-
         selectedFieldIds.push(id);
-
     }
-
-    console.log("選択中の田んぼ:", selectedFieldIds);
 
     saveInputState();
 
-    // 田んぼボタンだけ再描画
+    // 現在表示中の田んぼボタンだけ再描画
+    const containers = [
+        document.querySelector(".selection-flex-wrap"),
+        document.getElementById("foliarFieldButtonsContainer"),
+        document.getElementById("herbicideFieldButtonsContainer")
+    ];
+
     const container =
-        document.querySelector(".selection-flex-wrap");
+        containers.find(el => el);
 
     if (container) {
-
-    if (
-        inputTab === "fertilizer"
-    ) {
-
-        container.innerHTML =
-            renderFertilizerFieldButtons();
-
-    } else {
-
         container.innerHTML =
             renderAllFieldButtons();
-
     }
-
 }
-}　
 // ------------------------
 // 肥料一覧をプルダウンへ表示
 // ------------------------
@@ -2117,9 +2105,7 @@ function saveTopFertilizer() {
         );
 
         if (!field) {
-
             return;
-
         }
 
         const fieldRecord = {
@@ -2130,7 +2116,6 @@ function saveTopFertilizer() {
 
         };
 
-        // この田んぼの資材だけ保存
         sourceList
             .filter(item =>
                 String(item.fieldNo) === String(fieldNo)
@@ -2147,7 +2132,6 @@ function saveTopFertilizer() {
 
             });
 
-        // 資材がある田んぼだけ保存
         if (fieldRecord.materials.length > 0) {
 
             record.fields.push(fieldRecord);
@@ -2159,6 +2143,12 @@ function saveTopFertilizer() {
     recordList.push(record);
 
     saveRecordList();
+
+    alert(
+        fertilizerMode === "base"
+            ? "元肥を記録しました。"
+            : "追肥を記録しました。"
+    );
 
     recordDate = getToday();
 
@@ -2208,108 +2198,156 @@ function loadTopFertilizerForEdit() {
 
 }
 
+
 // ------------------------
 // 追肥編集画面
 // ------------------------
 function showTopFertilizerEdit() {
-let fieldHtml = "";
 
-editFields.forEach((field, fieldIndex) => {
+    let fieldHtml = "";
 
-    const info =
-        fieldMaster.find(f => f.no == field.fieldNo);
+    editFields.forEach((field, fieldIndex) => {
 
-    fieldHtml += `
-        <div class="card">
-
-            <h3>
-                No.${info.no}
-                ${info.owner}
-            </h3>
-    `;
-
-    field.materials.forEach((material, materialIndex) => {
+        const info =
+            fieldMaster.find(f => f.no == field.fieldNo);
 
         fieldHtml += `
-       <br>
+            <div class="card">
 
-    <button
-        onclick="addEditMaterial(${fieldIndex})">
+                <h3>
+                    No.${info.no}
+                    ${info.owner}
+                </h3>
+        `;
 
-        ➕ 資材追加
+        // ----------------------------------------
+        // 資材一覧
+        // ----------------------------------------
+        field.materials.forEach(
+            (material, materialIndex) => {
 
-    </button> 
-            <div>
+                fieldHtml += `
+                    <div>
 
-   <select
-    onchange="changeEditMaterial(${fieldIndex}, ${materialIndex}, this.value)">
+                        <select
+                            onchange="
+                                changeEditMaterial(
+                                    ${fieldIndex},
+                                    ${materialIndex},
+                                    this.value
+                                )
+                            "
+                        >
 
-    ${getEditMaterialOptions(
-    "fertilizer",
-    null,
-    field.materials,
-    material.material
-)}
+                            ${getEditMaterialOptions(
+                                "fertilizer",
+                                null,
+                                field.materials,
+                                material.material
+                            )}
 
-</select>
+                        </select>
 
-    <input
-    type="number"
-    value="${material.amount}"
-    onchange="changeEditBags(${fieldIndex}, ${materialIndex}, this.value)">
+                        <input
+                            type="number"
+                            value="${material.amount}"
+                            onchange="
+                                changeEditBags(
+                                    ${fieldIndex},
+                                    ${materialIndex},
+                                    this.value
+                                )
+                            "
+                        >
 
-    袋
-<button
-                onclick="removeEditMaterial(${fieldIndex}, ${materialIndex})">
+                        袋
 
-                🗑
+                        <button
+                            onclick="
+                                removeEditMaterial(
+                                    ${fieldIndex},
+                                    ${materialIndex}
+                                )
+                            "
+                        >
+                            🗑
+                        </button>
 
-            </button>
-</div>
+                    </div>
+
+                    <br>
+                `;
+
+            }
+        );
+
+        // ----------------------------------------
+        // 資材追加ボタン
+        // ※資材一覧の外に1個だけ置く
+        // ----------------------------------------
+        fieldHtml += `
+                <button
+                    onclick="
+                        addEditMaterial(
+                            ${fieldIndex}
+                        )
+                    "
+                >
+                    ➕ 資材追加
+                </button>
+
+            </div>
         `;
 
     });
 
-    fieldHtml += `
-    
+
+    // ----------------------------------------
+    // 編集画面全体
+    // ----------------------------------------
+    const html = `
+        <div class="page">
+
+            <div class="page-header">
+
+                <h2>✏️ 肥料編集</h2>
+
+            </div>
+
+
+            <div class="card">
+
+                <label>作業日</label><br>
+
+                <input
+                    type="date"
+                    id="editRecordDate"
+                    value="${recordDate}"
+                >
+
+            </div>
+
+
+            ${fieldHtml}
+
+
+            <div class="card">
+
+                <button
+                    onclick="saveTopFertilizerEdit()"
+                >
+                    💾 保存
+                </button>
+
+            </div>
+
         </div>
-        
     `;
-    
 
-});
-let html = `
-    <div class="page">
 
-        <div class="page-header">
-            <h2>✏️ 肥料編集</h2>
-        </div>
-
-        <div class="card">
-
-            <label>作業日</label><br>
-
-            <input
-                type="date"
-                id="editRecordDate"
-                value="${recordDate}">
-
-        </div>
-
-        ${fieldHtml}
-<div class="card">
-
-    <button onclick="saveTopFertilizerEdit()">
-        💾 保存
-    </button>
-
-</div>
-    </div>
-`;
     app.innerHTML = html;
 
 }
-
 
 // ------------------------
 // 編集袋数変更
@@ -2341,7 +2379,7 @@ function saveTopFertilizerEdit() {
 
     // 保存
     saveRecordList();
-    
+
     // 履歴画面へ戻る
     showHistory()
 
@@ -3314,65 +3352,7 @@ function addSprayMaterial() {
 
 }
 
-　
-/**
- * 葉面散布画面用の田んぼ選択ボタンを動的に生成する
- */
-function initFoliarFieldButtons() {
-    const container = document.getElementById("foliarFieldButtonsContainer");
-    if (!container) return;
 
-    container.innerHTML = "";
-    // 葉面散布を開いた時は一旦選択状態をクリア
-    selectedFieldIds = [];
-
-    if (!fieldMaster || fieldMaster.length === 0) {
-        container.innerHTML = `<span style="color: #888; font-size: 14px;">※設定画面で田んぼを登録してください</span>`;
-        return;
-    }
-
-    fieldMaster.forEach(field => {
-        const btn = document.createElement("div");
-        btn.className = "foliar-field-btn";
-        btn.dataset.id = String(field.no);
-        btn.textContent = `☐ ${field.no} ${field.owner}`;
-
-        // アプリ全体のデザインに合わせた枠線スタイル
-        btn.style.padding = "8px 12px";
-        btn.style.border = "1px solid #333";
-        btn.style.borderRadius = "4px";
-        btn.style.backgroundColor = "#fff";
-        btn.style.color = "#000";
-        btn.style.cursor = "pointer";
-        btn.style.fontSize = "15px";
-        btn.style.userSelect = "none";
-        btn.style.transition = "all 0.1s";
-
-        btn.addEventListener("click", function() {
-            const fieldId = btn.dataset.id;
-            const index = selectedFieldIds.indexOf(fieldId);
-
-            if (index >= 0) {
-                // 選択解除
-                selectedFieldIds.splice(index, 1);
-                btn.style.backgroundColor = "#fff";
-                btn.style.color = "#000";
-                btn.style.border = "1px solid #333";
-                btn.textContent = `☐ ${field.no} ${field.owner}`;
-            } else {
-                // 選択 (肥料の追肥アクティブ時の緑色 #2e7d32 に統一)
-                selectedFieldIds.push(fieldId);
-                btn.style.backgroundColor = "#2e7d32";
-                btn.style.color = "#fff";
-                btn.style.border = "1px solid #2e7d32";
-                btn.textContent = `☑ ${field.no} ${field.owner}`;
-            }
-            console.log("選択中の田んぼID:", selectedFieldIds);
-        });
-
-        container.appendChild(btn);
-    });
-}
 
 
 function createNormalDetailHtml(record) {
@@ -3608,7 +3588,7 @@ function createSprayDetailHtml(record) {
 }
 
 
-　
+
 function saveOtherRecord() {
     const date = recordDate || document.getElementById("recordDate").value;
     const workType = document.getElementById("otherWorkSelect").value;
@@ -3650,8 +3630,8 @@ function saveOtherRecord() {
     recordList.push(record);
     saveRecordList(); // storage.js の保存関数を実行
 
-    alert("その他作業の記録を保存しました。");
-    showHistory(); // 履歴画面へ遷移
+    alert("記録しました。");
+    showinput(); // 履歴画面へ遷移
 }
 
 // ==========================================
@@ -4284,7 +4264,7 @@ function changePlanPer10a(index, per10aValue) {
     if (area > 0) {
         // 10a当たりの量 × 面積(反)
         const totalAmount = Number(per10aValue) * area;
-        
+
         // 四捨五入して整数にする
         planMaterials[index].amount = Math.round(totalAmount); 
     } else {
@@ -4834,7 +4814,7 @@ function savePlantingRecord() {
     alert("植え付けの記録を保存しました！");
     showInput();
 }
-　
+
 // ==========================================
 // 1. 植え付け編集データの読み込み
 // ==========================================

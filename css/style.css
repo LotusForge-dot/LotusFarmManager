@@ -436,5 +436,19 @@ flex-end; gap: 8px; margin-top: 12px; }
 
 }
 
+/* ========================================
+   田んぼ選択
+   ======================================== */
 
+.selection-flex-wrap {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+}
 
+.selection-flex-wrap .tab {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+}
+.

@@ -116,7 +116,7 @@ function getShipmentHtml() {
             class="mainButton"
             onclick="saveShipmentRecord()">
 
-            💾保存
+            💾記録する
 
         </button>
 
@@ -367,7 +367,7 @@ window.editShipmentIndex = null;
 
 inputTab = "shipment";
 
-alert("出荷記録を保存しました。");
+alert("記録しました");
 
 showInput();
 
@@ -483,14 +483,9 @@ function renderShipmentHistory() {
 
     let records = [...shipmentRecords];
 
-    // ========================================
     // 年
-    // ========================================
-
     const year =
-        document.getElementById(
-            "shipmentHistoryYear"
-        ).value;
+        document.getElementById("shipmentHistoryYear").value;
 
     if (year !== "") {
 
@@ -500,15 +495,9 @@ function renderShipmentHistory() {
 
     }
 
-
-    // ========================================
     // 田んぼ
-    // ========================================
-
     const field =
-        document.getElementById(
-            "shipmentHistoryField"
-        ).value;
+        document.getElementById("shipmentHistoryField").value;
 
     if (field !== "") {
 
@@ -518,15 +507,9 @@ function renderShipmentHistory() {
 
     }
 
-
-    // ========================================
     // 出荷先
-    // ========================================
-
     const destination =
-        document.getElementById(
-            "shipmentHistoryDestination"
-        ).value;
+        document.getElementById("shipmentHistoryDestination").value;
 
     if (destination !== "") {
 
@@ -536,15 +519,9 @@ function renderShipmentHistory() {
 
     }
 
-
-    // ========================================
     // 開始日
-    // ========================================
-
     const from =
-        document.getElementById(
-            "shipmentHistoryFrom"
-        ).value;
+        document.getElementById("shipmentHistoryFrom").value;
 
     if (from !== "") {
 
@@ -554,15 +531,9 @@ function renderShipmentHistory() {
 
     }
 
-
-    // ========================================
     // 終了日
-    // ========================================
-
     const to =
-        document.getElementById(
-            "shipmentHistoryTo"
-        ).value;
+        document.getElementById("shipmentHistoryTo").value;
 
     if (to !== "") {
 
@@ -572,1530 +543,153 @@ function renderShipmentHistory() {
 
     }
 
-
-    // ========================================
-    // 該当なし
-    // ========================================
-
     if (records.length === 0) {
 
         list.innerHTML = `
-
             <div class="card">
-
                 出荷履歴はありません。
-
             </div>
-
         `;
 
         return;
 
     }
 
-
-    // ========================================
-    // 日々の出荷履歴
-    //
-    // 閉じた状態：
-    // 日付 / ほ場No. / 合計数量 / 売上
-    //
-    // 開いた状態：
-    // 出荷先 / 重量 / 包装 / 規格別明細
-    // ========================================
-
     let html = "";
-
 
     records
         .slice()
-        .sort(
-            (a, b) =>
-                b.date.localeCompare(a.date)
-        )
-        .forEach(record => {
+        .reverse()
+        .forEach((record) => {
 
-            // --------------------------------
-            // 合計数量
-            // --------------------------------
-
-            const totalQuantity =
-                Array.isArray(record.items)
-                    ? record.items.reduce(
-                        (
-                            sum,
-                            item
-                        ) =>
-                            sum +
-                            (
-                                Number(
-                                    item.quantity
-                                ) || 0
-                            ),
-                        0
-                    )
-                    : 0;
-
-
-            const quantityUnit =
-                record.weight === "袋"
-                    ? "袋"
-                    : "箱";
-
-
-            // --------------------------------
-            // その日の売上
-            // --------------------------------
+            const totalBoxes =
+                record.items.reduce(
+                    (sum, item) =>
+                        sum + Number(item.quantity),
+                    0
+                );
 
             const sales =
                 getShipmentSales(record);
 
-
-            // --------------------------------
-            // 規格別明細
-            // --------------------------------
-
-            const itemsHtml =
-                Array.isArray(record.items)
-                    ? record.items
-                        .map(item => {
-
-                            const price =
-                                getPrice(
-                                    record.weight,
-                                    item.grade,
-                                    record.date
-                                );
-
-
-                            const quantity =
-                                Number(
-                                    item.quantity
-                                ) || 0;
-
-
-                            const itemSales =
-                                price == null
-                                    ? null
-                                    : price * quantity;
-
-
-                            return `
-
-                                <div
-                                    class="
-                                        shipment-sale-row
-                                    "
-                                >
-
-                                    <span
-                                        class="
-                                            shipment-sale-grade
-                                        "
-                                    >
-                                        ${item.grade}
-                                    </span>
-
-
-                                    ${
-                                        price == null
-
-                                            ? `
-
-                                                <span
-                                                    style="
-                                                        flex:1;
-                                                    "
-                                                >
-                                                    価格未登録
-                                                </span>
-
-                                            `
-
-                                            : `
-
-                                                <span
-                                                    class="
-                                                        shipment-sale-price
-                                                    "
-                                                >
-                                                    ${
-                                                        price
-                                                            .toLocaleString()
-                                                    }円
-                                                </span>
-
-
-                                                <span
-                                                    class="
-                                                        shipment-sale-quantity
-                                                    "
-                                                >
-                                                    ×
-                                                    ${quantity}
-                                                    ${quantityUnit}
-                                                </span>
-
-
-                                                <span
-                                                    class="
-                                                        shipment-sale-total
-                                                    "
-                                                >
-                                                    =
-                                                    ${
-                                                        itemSales
-                                                            .toLocaleString()
-                                                    }円
-                                                </span>
-
-                                            `
-                                    }
-
-                                </div>
-
-                            `;
-
-                        })
-                        .join("")
-                    : "";
-
-
-            const originalIndex =
-                shipmentRecords.indexOf(record);
-
-
-            // --------------------------------
-            // 閉じた状態
-            // --------------------------------
-
             html += `
 
-                <details
-                    style="
-                        margin-bottom:
-                            10px;
-                    "
-                >
+                <div class="card">
 
-                    <summary
-                        style="
-                            cursor:
-                                pointer;
-                            padding:
-                                12px;
-                            font-weight:
-                                bold;
-                        "
-                    >
-                        ${record.date}
+                    <b>${record.date}</b>
 
-                       　
+                    <br>
 
-                        No.${record.fieldNo}
+                    田んぼ：No.${record.fieldNo}
 
-                       　
+                    <br>
 
-                        ${totalQuantity}
-                        ${quantityUnit}
+                    出荷先：${record.destination}
 
+                    <br><br>
+
+                    <b>${record.weight}</b>
+                    &nbsp;&nbsp;
+                    <b>${record.package}</b>
+
+                    <br>
+
+                    <b>
+                        合計：${totalBoxes}${record.weight === "袋" ? "袋" : "箱"}
+                    </b>
+
+                    <br>
+
+                    <b>
+                        💰 売上：
                         ${
                             sales == null
-                                ? ""
-                                : `
-                                   　
-                                    💰
-                                    ${
-                                        sales
-                                            .toLocaleString()
-                                    }円
-                                `
+                                ? "価格未登録"
+                                : sales.toLocaleString() + "円"
                         }
+                    </b>
 
-                    </summary>
-
-
-                    <!-- ======================
-                         開いた状態
-                    ======================= -->
-
-                    <div
-                        class="card"
-                        style="
-                            margin-top:
-                                8px;
-                        "
-                    >
-
-                        <div>
-                            出荷先：
-                            ${
-                                record.destination ||
-                                ""
-                            }
-                        </div>
-
-
-                        <div>
-                            重量：
-                            ${
-                                record.weight ||
-                                ""
-                            }
-                        </div>
-
-
-                        ${
-                            record.weight !== "袋" &&
-                            record.package
-                                ? `
-                                    <div>
-                                        包装：
-                                        ${record.package}
-                                    </div>
-                                `
-                                : ""
-                        }
-
-
-                        <hr>
-
-
-                        ${itemsHtml}
-
-
-                        <hr>
-
-
-                        <div
-                            class="
-                                record-row
-                            "
-                        >
-
-                            <strong>
-                                合計
-                            </strong>
-
-                            <strong>
-                                ${totalQuantity}
-                                ${quantityUnit}
-                            </strong>
-
-                        </div>
-
-
-                        <div
-                            class="
-                                record-row
-                            "
-                        >
-
-                            <strong>
-                                💰 売上
-                            </strong>
-
-                            <strong>
-                                ${
-                                    sales == null
-                                        ? "価格未登録"
-                                        : sales
-                                            .toLocaleString()
-                                            + "円"
-                                }
-                            </strong>
-
-                        </div>
-
-
-                        <hr>
-
-
-                        <button
-                            onclick="
-                                editShipmentRecord(
-                                    ${originalIndex}
-                                )
-                            "
-                        >
-                            編集
-                        </button>
-
-
-                        <button
-                            onclick="
-                                deleteShipmentRecord(
-                                    ${originalIndex}
-                                )
-                            "
-                        >
-                            削除
-                        </button>
-
-                    </div>
-
-                </details>
+                    <hr>
 
             `;
 
-        });
+            record.items.forEach(item => {
 
-
-    // ========================================
-    // 集計
-    // ========================================
-
-    renderShipmentSummary(records);
-
-
-    // ========================================
-    // 履歴表示
-    // ========================================
-
-    list.innerHTML = html;
-
-}
-
-
-function getShipmentSummaryHtml(records) {
-
-    // ========================================
-    // 集計データ
-    // ========================================
-
-    const shipmentSummary = {
-
-        "4kg": {
-
-            "発泡": {},
-
-            "ダンボール": {}
-
-        },
-
-        "2kg": {
-
-            "発泡": {},
-
-            "ダンボール": {}
-
-        },
-
-        "袋": {
-
-            "袋": {}
-
-        }
-
-    };
-
-
-    // ========================================
-    // 出荷記録を数量集計
-    // ========================================
-
-    records.forEach(
-        record => {
-
-            const weight =
-                record.weight;
-
-
-            if (
-                !shipmentSummary[
-                    weight
-                ]
-            ) {
-                return;
-            }
-
-
-            // ==================================
-            // 袋
-            // ==================================
-
-            if (
-                weight === "袋"
-            ) {
-
-                if (
-                    !Array.isArray(
-                        record.items
-                    )
-                ) {
-                    return;
-                }
-
-
-                record.items.forEach(
-                    item => {
-
-                        const grade =
-                            item.grade ||
-                            "袋";
-
-
-                        const quantity =
-                            Number(
-                                item.quantity
-                            ) || 0;
-
-
-                        if (
-                            quantity <= 0
-                        ) {
-                            return;
-                        }
-
-
-                        if (
-                            !shipmentSummary
-                                ["袋"]
-                                ["袋"]
-                                [grade]
-                        ) {
-
-                            shipmentSummary
-                                ["袋"]
-                                ["袋"]
-                                [grade] = 0;
-
-                        }
-
-
-                        shipmentSummary
-                            ["袋"]
-                            ["袋"]
-                            [grade] +=
-                                quantity;
-
-                    }
+                const price = getPrice(
+                    record.weight,
+                    item.grade,
+                    record.date
                 );
 
-
-                return;
-
-            }
-
-
-            // ==================================
-            // 4kg / 2kg
-            // ==================================
-
-            const packageName =
-                record.package ||
-                "未設定";
-
-
-            if (
-                !shipmentSummary
-                    [weight]
-                    [packageName]
-            ) {
-
-                shipmentSummary
-                    [weight]
-                    [packageName] = {};
-
-            }
-
-
-            if (
-                !Array.isArray(
-                    record.items
-                )
-            ) {
-                return;
-            }
-
-
-            record.items.forEach(
-                item => {
-
-                    const grade =
-                        item.grade ||
-                        "不明";
-
-
-                    const quantity =
-                        Number(
-                            item.quantity
-                        ) || 0;
-
-
-                    if (
-                        quantity <= 0
-                    ) {
-                        return;
-                    }
-
-
-                    if (
-                        !shipmentSummary
-                            [weight]
-                            [packageName]
-                            [grade]
-                    ) {
-
-                        shipmentSummary
-                            [weight]
-                            [packageName]
-                            [grade] = 0;
-
-                    }
-
-
-                    shipmentSummary
-                        [weight]
-                        [packageName]
-                        [grade] +=
-                            quantity;
-
-                }
-            );
-
-        }
-    );
-
-
-    // ========================================
-    // 重量別の売上データ
-    //
-    // 各出荷記録の日付から価格を取得し、
-    // 実際の売上を積み上げる
-    // ========================================
-
-    function getWeightSalesData(
-        weight
-    ) {
-
-        const gradeData = {};
-
-
-        let totalSales = 0;
-
-
-        let hasPrice = false;
-
-
-        records
-            .filter(
-                record =>
-                    record.weight ===
-                    weight
-            )
-            .forEach(
-                record => {
-
-                    if (
-                        !Array.isArray(
-                            record.items
-                        )
-                    ) {
-                        return;
-                    }
-
-
-                    record.items.forEach(
-                        item => {
-
-                            const quantity =
-                                Number(
-                                    item.quantity
-                                ) || 0;
-
-
-                            if (
-                                quantity <= 0
-                            ) {
-                                return;
-                            }
-
-
-                            // ----------------
-                            // その日の単価
-                            // ----------------
-
-                            const price =
-                                getPrice(
-                                    record.weight,
-                                    item.grade,
-                                    record.date
-                                );
-
-
-                            // ----------------
-                            // 初期化
-                            // ----------------
-
-                            if (
-                                !gradeData[
-                                    item.grade
-                                ]
-                            ) {
-
-                                gradeData[
-                                    item.grade
-                                ] = {
-
-                                    quantity: 0,
-
-                                    sales: 0
-
-                                };
-
-                            }
-
-
-                            // ----------------
-                            // 数量
-                            // ----------------
-
-                            gradeData[
-                                item.grade
-                            ].quantity +=
-                                quantity;
-
-
-                            // ----------------
-                            // 売上
-                            // ----------------
-
-                            if (
-                                price != null
-                            ) {
-
-                                const itemSales =
-                                    price *
-                                    quantity;
-
-
-                                gradeData[
-                                    item.grade
-                                ].sales +=
-                                    itemSales;
-
-
-                                totalSales +=
-                                    itemSales;
-
-
-                                hasPrice =
-                                    true;
-
-                            }
-
+                const itemSales =
+                    price == null
+                        ? null
+                        : price * Number(item.quantity);
+
+                html += `
+
+                    <div class="shipment-sale-row">
+
+                        <span class="shipment-sale-grade">
+                            ${item.grade}
+                        </span>
+
+                        ${
+                            price == null
+                                ? `
+                                    <span style="flex:1;">
+                                        価格未登録
+                                    </span>
+                                `
+                                : `
+                                    <span class="shipment-sale-price">
+                                        ${price.toLocaleString()}円
+                                    </span>
+
+                                    <span class="shipment-sale-quantity">
+                                        × ${item.quantity}${record.weight === "袋" ? "袋" : "箱"}
+                                    </span>
+
+                                    <span class="shipment-sale-total">
+                                        = ${itemSales.toLocaleString()}円
+                                    </span>
+                                `
                         }
-                    );
-
-                }
-            );
-
-
-        return {
-
-            gradeData,
-
-            totalSales,
-
-            hasPrice
-
-        };
-
-    }
-
-
-    // ========================================
-    // 売上・単価HTML
-    // ========================================
-
-    function createSalesHtml(
-        weight
-    ) {
-
-        const data =
-            getWeightSalesData(
-                weight
-            );
-
-
-        const entries =
-            Object.entries(
-                data.gradeData
-            );
-
-
-        if (
-            entries.length === 0
-        ) {
-            return "";
-        }
-
-
-        const quantityUnit =
-            weight === "袋"
-                ? "袋"
-                : "箱";
-
-
-        const gradeHtml =
-            entries
-                .map(
-                    (
-                        [
-                            grade,
-                            value
-                        ]
-                    ) => {
-
-                        // --------------------
-                        // 実績単価
-                        //
-                        // 合計売上 ÷ 合計数量
-                        // --------------------
-
-                        const actualPrice =
-                            value.sales > 0 &&
-                            value.quantity > 0
-                                ? value.sales /
-                                  value.quantity
-                                : null;
-
-
-                        // --------------------
-                        // 価格未登録
-                        // --------------------
-
-                        if (
-                            actualPrice == null
-                        ) {
-
-                            return `
-
-                                <div
-                                    class="card"
-                                    style="
-                                        margin-bottom:
-                                            8px;
-                                    "
-                                >
-
-                                    <div
-                                        class="
-                                            record-row
-                                        "
-                                    >
-
-                                        <strong>
-                                            ${grade}
-                                        </strong>
-
-                                        <span>
-                                            価格未登録
-                                        </span>
-
-                                    </div>
-
-
-                                    <div>
-                                        ${
-                                            value.quantity
-                                        }${quantityUnit}
-                                    </div>
-
-                                </div>
-
-                            `;
-
-                        }
-
-
-                        // --------------------
-                        // 実績単価・売上
-                        // --------------------
-
-                        return `
-
-                            <div
-                                class="card"
-                                style="
-                                    margin-bottom:
-                                        8px;
-                                "
-                            >
-
-                                <div
-                                    class="
-                                        record-row
-                                    "
-                                >
-
-                                    <strong>
-                                        ${grade}
-                                    </strong>
-
-                                    <strong>
-                                        実績単価
-                                       　
-                                        ${
-                                            Math.round(
-                                                actualPrice
-                                            )
-                                                .toLocaleString()
-                                        }円
-                                    </strong>
-
-                                </div>
-
-
-                                <div>
-
-                                    出荷数量：
-                                    ${
-                                        value.quantity
-                                    }${quantityUnit}
-
-                                </div>
-
-
-                                <div
-                                    style="
-                                        text-align:
-                                            right;
-                                        font-weight:
-                                            bold;
-                                    "
-                                >
-
-                                    売上：
-                                    ${
-                                        value.sales
-                                            .toLocaleString()
-                                    }円
-
-                                </div>
-
-                            </div>
-
-                        `;
-
-                    }
-                )
-                .join("");
-
-
-        // ====================================
-        // 重量別売上
-        // ====================================
-
-        const totalHtml =
-            data.hasPrice
-
-                ? `
-
-                    <div
-                        class="card"
-                        style="
-                            margin-top: 10px;
-                        "
-                    >
-
-                        <div
-                            class="
-                                record-row
-                            "
-                        >
-
-                            <strong>
-                                ${weight}売上合計
-                            </strong>
-
-                            <strong>
-                                ${
-                                    data.totalSales
-                                        .toLocaleString()
-                                }円
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-                `
-
-                : `
-
-                    <div
-                        class="card"
-                    >
-
-                        価格未登録
 
                     </div>
 
                 `;
 
+            });
 
-        // ====================================
-        // 開閉式
-        // ====================================
+            const originalIndex =
+                shipmentRecords.indexOf(record);
 
-        return `
-
-            <details>
-
-                <summary
-                    style="
-                        cursor: pointer;
-                        font-weight: bold;
-                        padding: 10px 0;
-                    "
-                >
-
-                    💰 売上・単価
-
-                </summary>
-
-
-                <div
-                    style="
-                        padding:
-                            5px 0 10px 0;
-                    "
-                >
-
-                    ${gradeHtml}
-
-                    ${totalHtml}
-
-                </div>
-
-            </details>
-
-        `;
-
-    }
-
-
-    // ========================================
-    // 包装別ブロック
-    // ========================================
-
-    function createPackageHtml(
-        weight,
-        packageName
-    ) {
-
-        const gradeData =
-            shipmentSummary
-                [weight]
-                [packageName];
-
-
-        const grades =
-            Object.entries(
-                gradeData
-            );
-
-
-        if (
-            grades.length === 0
-        ) {
-            return "";
-        }
-
-
-        let packageTotal = 0;
-
-
-        grades.forEach(
-            (
-                [
-                    grade,
-                    quantity
-                ]
-            ) => {
-
-                packageTotal +=
-                    quantity;
-
-            }
-        );
-
-
-        const gradeHtml =
-            grades
-                .map(
-                    (
-                        [
-                            grade,
-                            quantity
-                        ]
-                    ) => `
-
-                        <div
-                            class="
-                                record-row
-                            "
-                        >
-
-                            <span>
-                                ${grade}
-                            </span>
-
-                            <strong>
-                                ${quantity}箱
-                            </strong>
-
-                        </div>
-
-                    `
-                )
-                .join("");
-
-
-        return `
-
-            <div
-                class="card"
-                style="
-                    margin-bottom:
-                        10px;
-                "
-            >
-
-                <h4>
-                    📦 ${packageName}
-                </h4>
-
-
-                ${gradeHtml}
-
-
-                <hr>
-
-
-                <div
-                    class="
-                        record-row
-                    "
-                >
-
-                    <strong>
-                        小計
-                    </strong>
-
-                    <strong>
-                        ${packageTotal}箱
-                    </strong>
-
-                </div>
-
-            </div>
-
-        `;
-
-    }
-
-
-    // ========================================
-    // 重量別ブロック
-    // ========================================
-
-    function createWeightHtml(
-        weight
-    ) {
-
-        const weightData =
-            shipmentSummary[
-                weight
-            ];
-
-
-        let packageHtml = "";
-
-
-        let weightTotal = 0;
-
-
-        const gradeSummary = {};
-
-
-        // ------------------------------------
-        // 包装別
-        // ------------------------------------
-
-        Object.entries(
-            weightData
-        )
-        .forEach(
-            (
-                [
-                    packageName,
-                    gradeData
-                ]
-            ) => {
-
-                const grades =
-                    Object.entries(
-                        gradeData
-                    );
-
-
-                if (
-                    grades.length === 0
-                ) {
-                    return;
-                }
-
-
-                packageHtml +=
-                    createPackageHtml(
-                        weight,
-                        packageName
-                    );
-
-
-                grades.forEach(
-                    (
-                        [
-                            grade,
-                            quantity
-                        ]
-                    ) => {
-
-                        weightTotal +=
-                            quantity;
-
-
-                        if (
-                            !gradeSummary[
-                                grade
-                            ]
-                        ) {
-
-                            gradeSummary[
-                                grade
-                            ] = 0;
-
-                        }
-
-
-                        gradeSummary[
-                            grade
-                        ] +=
-                            quantity;
-
-                    }
-                );
-
-            }
-        );
-
-
-        if (
-            weightTotal === 0
-        ) {
-            return "";
-        }
-
-
-        // ------------------------------------
-        // 重量合計
-        // ------------------------------------
-
-        const weightTotalHtml = `
-
-            <div
-                class="card"
-                style="
-                    margin-top:
-                        10px;
-                    margin-bottom:
-                        10px;
-                "
-            >
-
-                <div
-                    class="
-                        record-row
-                    "
-                >
-
-                    <strong>
-                        ${weight}合計
-                    </strong>
-
-                    <strong>
-                        ${weightTotal}箱
-                    </strong>
-
-                </div>
-
-            </div>
-
-        `;
-
-
-        // ------------------------------------
-        // 規格別合計
-        // ------------------------------------
-
-        const gradeSummaryHtml =
-            Object.entries(
-                gradeSummary
-            )
-            .map(
-                (
-                    [
-                        grade,
-                        quantity
-                    ]
-                ) => `
-
-                    <div
-                        class="
-                            record-row
-                        "
-                    >
-
-                        <span>
-                            ${grade}
-                        </span>
-
-                        <strong>
-                            ${quantity}箱
-                        </strong>
-
-                    </div>
-
-                `
-            )
-            .join("");
-
-
-        const gradeSummaryCard = `
-
-            <div
-                class="card"
-                style="
-                    margin-bottom:
-                        15px;
-                "
-            >
-
-                <h4>
-                    📊
-                    ${weight}
-                    規格別合計
-                </h4>
-
-                ${gradeSummaryHtml}
-
-            </div>
-
-        `;
-
-
-        // ------------------------------------
-        // 売上・単価
-        // ------------------------------------
-
-        const salesHtml =
-            createSalesHtml(
-                weight
-            );
-
-
-        return `
-
-            <div>
-
-                <h3>
-                    📦 ${weight}
-                </h3>
-
-
-                ${packageHtml}
-
-
-                ${weightTotalHtml}
-
-
-                ${gradeSummaryCard}
-
-
-                ${salesHtml}
-
-            </div>
-
-        `;
-
-    }
-
-
-    // ========================================
-    // 袋
-    // ========================================
-
-    function createBagHtml() {
-
-        const gradeData =
-            shipmentSummary
-                ["袋"]
-                ["袋"];
-
-
-        const grades =
-            Object.entries(
-                gradeData
-            );
-
-
-        if (
-            grades.length === 0
-        ) {
-            return "";
-        }
-
-
-        let total = 0;
-
-
-        grades.forEach(
-            (
-                [
-                    grade,
-                    quantity
-                ]
-            ) => {
-
-                total +=
-                    quantity;
-
-            }
-        );
-
-
-        const gradeHtml =
-            grades
-                .map(
-                    (
-                        [
-                            grade,
-                            quantity
-                        ]
-                    ) => `
-
-                        <div
-                            class="
-                                record-row
-                            "
-                        >
-
-                            <span>
-                                ${grade}
-                            </span>
-
-                            <strong>
-                                ${quantity}袋
-                            </strong>
-
-                        </div>
-
-                    `
-                )
-                .join("");
-
-
-        const salesHtml =
-            createSalesHtml(
-                "袋"
-            );
-
-
-        return `
-
-            <div>
-
-                <h3>
-                    🛍 袋
-                </h3>
-
-
-                <div
-                    class="card"
-                >
-
-                    ${gradeHtml}
-
+            html += `
 
                     <hr>
 
+                    <button
+                        onclick="editShipmentRecord(${originalIndex})">
+                        編集
+                    </button>
 
-                    <div
-                        class="
-                            record-row
-                        "
-                    >
-
-                        <strong>
-                            袋合計
-                        </strong>
-
-                        <strong>
-                            ${total}袋
-                        </strong>
-
-                    </div>
-
-
-                    ${salesHtml}
+                    <button
+                        onclick="deleteShipmentRecord(${originalIndex})">
+                        削除
+                    </button>
 
                 </div>
 
-            </div>
+            `;
 
-        `;
+        });
 
-    }
+    renderShipmentSummary(records);
 
-
-
-    // ========================================
-    // 最終HTML
-    // ========================================
-
-    return `
-
-        <div>
-
-            <!-- ==========================
-                 4kg
-            =========================== -->
-
-            ${createWeightHtml("4kg")}
-
-
-            <!-- ==========================
-                 2kg
-            =========================== -->
-
-            ${createWeightHtml("2kg")}
-
-
-            <!-- ==========================
-                 袋
-            =========================== -->
-
-            ${createBagHtml()}
-
-        </div>
-
-    `;
+    list.innerHTML = html;
 
 }
-
 function clearShipmentHistorySearch() {
 
     document.getElementById("shipmentHistoryYear").value = "";
